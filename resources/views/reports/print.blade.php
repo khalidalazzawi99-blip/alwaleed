@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
 <meta charset="UTF-8">
 
@@ -179,43 +179,43 @@ button{
         </div>
 
         <div class="report-title">
-            <h1>تقرير النظام</h1>
+            <h1>{{ __('تقرير النظام') }}</h1>
             <p>Al Waleed </p>
-            <p>تاريخ الطباعة: {{ date('Y-m-d') }}</p>
+        <p>{{ __('messages.print_date', ['date' => date('Y-m-d')]) }}</p>
         </div>
     </div>
 
     <div class="summary">
         <div class="summary-card">
-            <span>الرصيد الحالي</span>
+            <span>{{ __('الرصيد الحالي') }}</span>
             <h2 class="gold">{{ number_format($balance,2) }}</h2>
         </div>
 
         <div class="summary-card">
-            <span>إجمالي القبض</span>
+            <span>{{ __('إجمالي القبض') }}</span>
             <h2 class="green">{{ number_format($totalReceipts,2) }}</h2>
         </div>
 
         <div class="summary-card">
-            <span>إجمالي الصرف</span>
+            <span>{{ __('إجمالي الصرف') }}</span>
             <h2 class="red">{{ number_format($totalPayments,2) }}</h2>
         </div>
 
         <div class="summary-card">
-            <span>صافي الحركة</span>
+            <span>{{ __('صافي الحركة') }}</span>
             <h2>{{ number_format($totalReceipts - $totalPayments,2) }}</h2>
         </div>
     </div>
 
     <div class="section">
-        <h2>آخر سندات القبض</h2>
+        <h2>{{ __('آخر سندات القبض') }}</h2>
 
         <table>
             <thead>
                 <tr>
-                    <th>رقم الوصل</th>
-                    <th>الزبون</th>
-                    <th>المبلغ</th>
+                    <th>{{ __('رقم الوصل') }}</th>
+                    <th>{{ __('الزبون') }}</th>
+                    <th>{{ __('المبلغ') }}</th>
                 </tr>
             </thead>
 
@@ -223,7 +223,7 @@ button{
             @foreach($receipts->take(12) as $receipt)
                 <tr>
                     <td>{{ $receipt->receipt_no }}</td>
-                    <td>{{ $receipt->customer->name ?? '-' }}</td>
+                    <td>{{ $receipt->party?->name ?? '-' }}</td>
                     <td class="green">{{ number_format($receipt->amount,2) }}</td>
                 </tr>
             @endforeach
@@ -232,14 +232,14 @@ button{
     </div>
 
     <div class="section">
-        <h2>آخر سندات الصرف</h2>
+        <h2>{{ __('آخر سندات الصرف') }}</h2>
 
         <table>
             <thead>
                 <tr>
-                    <th>رقم الوصل</th>
-                    <th>المورد</th>
-                    <th>المبلغ</th>
+                    <th>{{ __('رقم الوصل') }}</th>
+                    <th>{{ __('المورد') }}</th>
+                    <th>{{ __('المبلغ') }}</th>
                 </tr>
             </thead>
 
@@ -247,7 +247,7 @@ button{
             @foreach($payments->take(12) as $payment)
                 <tr>
                     <td>{{ $payment->payment_no }}</td>
-                    <td>{{ $payment->supplier->name ?? '-' }}</td>
+                    <td>{{ $payment->party?->name ?? '-' }}</td>
                     <td class="red">{{ number_format($payment->amount,2) }}</td>
                 </tr>
             @endforeach
@@ -256,17 +256,17 @@ button{
     </div>
 <div class="section">
 
-    <h2>حركة الصندوق اليومية</h2>
+    <h2>{{ __('حركة الصندوق اليومية') }}</h2>
 
     <table>
 
         <thead>
 
             <tr>
-                <th>التاريخ</th>
-                <th>الداخل</th>
-                <th>الخارج</th>
-                <th>الصافي</th>
+                <th>{{ __('التاريخ') }}</th>
+                <th>{{ __('الداخل') }}</th>
+                <th>{{ __('الخارج') }}</th>
+                <th>{{ __('الصافي') }}</th>
             </tr>
 
         </thead>
@@ -308,7 +308,7 @@ button{
 </div>
 
 <div class="print-btn">
-    <button onclick="window.print()">طباعة / حفظ PDF</button>
+    <button onclick="window.print()">{{ __('طباعة / حفظ PDF') }}</button>
 </div>
 
 </body>

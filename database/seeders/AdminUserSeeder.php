@@ -10,11 +10,22 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::create([
-            'name' => 'Khalid Alazzawi',
-            'email' => 'admin@alwaleed.com',
-            'password' => Hash::make('12345678'),
-            'role' => 'admin',
-        ]);
+        User::updateOrCreate(
+
+            ['email' => 'admin@alwaleed.com'],
+
+            [
+                'company_id' => null,
+
+                'name' => 'Khalid Alazzawi',
+
+                'email' => 'admin@alwaleed.com',
+
+                'password' => Hash::make('12345678'),
+
+                'role' => 'super_admin',
+            ]
+
+        );
     }
 }

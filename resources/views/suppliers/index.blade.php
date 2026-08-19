@@ -3,47 +3,47 @@
 @section('content')
 
 <div class="topbar">
-    <h1 class="page-title">إدارة الموردين</h1>
+    <h1 class="page-title">{{ __('إدارة الموردين') }}</h1>
 </div>
 
 <div class="card">
-    <h2>إضافة مورد جديد</h2>
+    <h2>{{ __('إضافة مورد جديد') }}</h2>
 
     <form method="POST" action="/suppliers">
         @csrf
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px">
-            <input type="text" name="name" placeholder="اسم المورد" required>
-            <input type="text" name="phone" placeholder="رقم الهاتف">
-            <input type="text" name="company_name" placeholder="اسم الشركة">
-            <input type="text" name="address" placeholder="العنوان">
+            <input type="text" name="name" placeholder="{{ __('اسم المورد') }}" required>
+            <input type="text" name="phone" placeholder="{{ __('رقم الهاتف') }}">
+            <input type="text" name="company_name" placeholder="{{ __('اسم الشركة') }}">
+            <input type="text" name="address" placeholder="{{ __('العنوان') }}">
         </div>
 
         <br>
 
-        <textarea name="notes" rows="4" placeholder="ملاحظات"></textarea>
+        <textarea name="notes" rows="4" placeholder="{{ __('ملاحظات') }}"></textarea>
 
         <br><br>
 
-        <button type="submit">حفظ المورد</button>
+        <button type="submit">{{ __('حفظ المورد') }}</button>
     </form>
 </div>
 
 <div class="card">
-    <h2>قائمة الموردين</h2>
+    <h2>{{ __('قائمة الموردين') }}</h2>
 <input
     type="text"
     id="supplierSearch"
-    placeholder="بحث عن مورد..."
+    placeholder="{{ __('بحث عن مورد...') }}"
     style="margin-bottom:20px">
     <table>
         <thead>
             <tr>
                 <th>#</th>
-                <th>الاسم</th>
-                <th>الهاتف</th>
-                <th>الشركة</th>
-                <th>العنوان</th>
+                <th>{{ __('الاسم') }}</th>
+                <th>{{ __('الهاتف') }}</th>
+                <th>{{ __('الشركة') }}</th>
+                <th>{{ __('العنوان') }}</th>
             </tr>
         </thead>
 

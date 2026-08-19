@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
 <meta charset="UTF-8">
-<title>سند صرف</title>
+<title>{{ __('سند صرف') }}</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -136,30 +136,30 @@ body{
 
     <div class="header">
         <img src="/logo.png" alt="Al Waleed">
-        <div class="title">سند صرف</div>
+        <div class="title">{{ __('سند صرف') }}</div>
     </div>
 
     <div class="content">
 
         <div class="info">
             <div class="box">
-                <strong>رقم الوصل:</strong>
+                <strong>{{ __('رقم الوصل:') }}</strong>
                 {{ $payment->payment_no }}
             </div>
 
             <div class="box">
-                <strong>التاريخ:</strong>
+                <strong>{{ __('التاريخ:') }}</strong>
                 {{ $payment->payment_date }}
             </div>
 
             <div class="box">
-                <strong>اسم المورد:</strong>
-                {{ $payment->supplier->name ?? '-' }}
+                <strong>{{ __('اسم المورد:') }}</strong>
+                {{ $payment->party?->name ?? '-' }}
             </div>
 
             <div class="box">
-                <strong>رقم الهاتف:</strong>
-                {{ $payment->supplier->phone ?? '-' }}
+                <strong>{{ __('رقم الهاتف:') }}</strong>
+                {{ $payment->party?->phone ?? '-' }}
             </div>
         </div>
 
@@ -168,16 +168,16 @@ body{
         </div>
 
         <div>
-            <strong>الملاحظات:</strong>
+            <strong>{{ __('الملاحظات:') }}</strong>
 
             <div class="notes">
-                {{ $payment->notes ?? 'لا توجد ملاحظات' }}
+            {{ $payment->notes ?? __('لا توجد ملاحظات') }}
             </div>
         </div>
 
         <div class="signatures">
-            <div class="sign">توقيع المحاسب</div>
-            <div class="sign">توقيع المستلم</div>
+            <div class="sign">{{ __('توقيع المحاسب') }}</div>
+            <div class="sign">{{ __('توقيع المستلم') }}</div>
         </div>
 
     </div>
@@ -185,7 +185,9 @@ body{
 </div>
 
 <div class="print-btn">
-    <button onclick="window.print()">طباعة السند</button>
+    <button onclick="window.print()">{{ __('طباعة السند') }}</button>
+    <a href="/payments/{{ $payment->id }}/pdf" style="display:inline-block;background:#26344d;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:800">PDF</a>
+    <a href="/payments/{{ $payment->id }}/excel" style="display:inline-block;background:#15803d;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:800">Excel</a>
 </div>
 
 </body>

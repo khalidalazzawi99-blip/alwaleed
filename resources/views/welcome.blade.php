@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <title>Al Waleed ERP</title>
@@ -15,14 +15,14 @@
 <body>
     <div class="header">
         <h1>Al Waleed ERP</h1>
-        <p>نظام إدارة الحسابات والأعمال</p>
+        <p>{{ __('نظام إدارة الحسابات والأعمال') }}</p>
     </div>
 
     <div class="cards">
-        <div class="card"><h3>الرصيد الكلي</h3><p>0 IQD</p></div>
-        <div class="card"><h3>الإيرادات</h3><p>0 IQD</p></div>
-        <div class="card"><h3>المصاريف</h3><p>0 IQD</p></div>
-        <div class="card"><h3>عدد الحركات</h3><p>0</p></div>
+        <div class="card"><h3>{{ __('الرصيد الكلي') }}</h3><p>0 IQD</p></div>
+        <div class="card"><h3>{{ __('الإيرادات') }}</h3><p>0 IQD</p></div>
+        <div class="card"><h3>{{ __('المصاريف') }}</h3><p>0 IQD</p></div>
+        <div class="card"><h3>{{ __('عدد الحركات') }}</h3><p>0</p></div>
     </div>
 </body>
 </html>

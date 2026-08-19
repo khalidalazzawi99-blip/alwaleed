@@ -2,21 +2,87 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
 
 class BackupController extends Controller
 {
     public function download()
     {
-        $dbPath = database_path('database.sqlite');
-
-        if (!file_exists($dbPath)) {
-            return back()->with('error', 'ملف قاعدة البيانات غير موجود');
+        /*
+        |--------------------------------------------------------------------------
+        | النسخة الاحتياطية متاحة لمالك النظام فقط
+        |--------------------------------------------------------------------------
+        */
+        if (
+            !auth()->check() ||
+            auth()->user()->role !== 'super_admin'
+        ) {
+            abort(403, __('غير مسموح بتنزيل النسخة الاحتياطية'));
         }
 
-        return Response::download(
+        /*
+        |--------------------------------------------------------------------------
+        | مسار قاعدة البيانات
+        |--------------------------------------------------------------------------
+        */
+        $dbPath = database_path('database.sqlite');
+
+        if (!File::exists($dbPath)) {
+            return back()->with(
+                'error',
+                __('ملف قاعدة البيانات غير موجود')
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | مجلد النسخ الاحتياطية
+        |--------------------------------------------------------------------------
+        */
+        $backupDirectory = storage_path('app/backups');
+
+        if (!File::exists($backupDirectory)) {
+            File::makeDirectory(
+                $backupDirectory,
+                0755,
+                true
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | اسم النسخة
+        |--------------------------------------------------------------------------
+        */
+        $fileName =
+            'alwaleed-backup-' .
+            now()->format('Y-m-d-H-i-s') .
+            '.sqlite';
+
+        $backupPath =
+            $backupDirectory .
+            DIRECTORY_SEPARATOR .
+            $fileName;
+
+        /*
+        |--------------------------------------------------------------------------
+        | إنشاء نسخة
+        |--------------------------------------------------------------------------
+        */
+        File::copy(
             $dbPath,
-            'alwaleed-backup-' . date('Y-m-d-H-i') . '.sqlite'
+            $backupPath
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | تنزيل النسخة
+        |--------------------------------------------------------------------------
+        */
+        return Response::download(
+            $backupPath,
+            $fileName
         );
     }
 }

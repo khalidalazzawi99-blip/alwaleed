@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class Cashbox extends Model
 {
     protected $fillable = [
-        'balance'
+        'company_id',
+        'balance',
     ];
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
 }

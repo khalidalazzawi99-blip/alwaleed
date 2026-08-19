@@ -1,87 +1,30 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $party = $customer;
+    $statementTitle = __('messages.customer_statement');
+    $printUrl = url('/customers/'.$customer->id.'/print');
+    $resetUrl = url('/customers/'.$customer->id);
+    $receiptUrl = url('/receipts?party_type=customer&party_id='.$customer->id);
+    $paymentUrl = url('/payments?party_type=customer&party_id='.$customer->id);
+@endphp
+@include('statements.show')
 
-<div class="topbar">
-    <div class="topbar">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-            <h1 class="page-title">{{ $customer->name }}</h1>
-            <p style="color:#8A8178">
-                كشف حساب الزبون
-            </p>
-        </div>
-
-        <a href="/customers/{{ $customer->id }}/print"
-           target="_blank"
-           class="btn">
-           طباعة كشف الحساب
-        </a>
+<section class="card" style="margin-top:20px">
+    <h2>{{ __('messages.external_invoices') }}</h2>
+    <div style="overflow-x:auto">
+        <table>
+            <thead><tr><th>{{ __('messages.invoice_number') }}</th><th>{{ __('messages.date') }}</th><th>{{ __('messages.amount') }}</th></tr></thead>
+            <tbody>
+            @forelse($externalInvoicesPage as $invoice)
+                <tr><td>{{ $invoice->invoice_no }}</td><td>{{ $invoice->invoice_date?->format('Y/m/d') }}</td><td>{{ number_format($invoice->amount, 2) }}</td></tr>
+            @empty
+                <tr><td colspan="3">{{ __('messages.no_external_invoices') }}</td></tr>
+            @endforelse
+            </tbody>
+        </table>
     </div>
-</div>
-    <h1 class="page-title">{{ $customer->name }}</h1>
-    <p style="color:#8A8178">
-        كشف حساب الزبون
-    </p>
-</div>
-
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
-
-    <div class="card">
-        <h3>عدد السندات</h3>
-        <h1>{{ $receiptsCount }}</h1>
-    </div>
-
-    <div class="card">
-        <h3>إجمالي المقبوضات</h3>
-        <h1 style="color:#15803D">
-            {{ number_format($totalReceipts,2) }}
-        </h1>
-    </div>
-
-    <div class="card">
-        <h3>رقم الهاتف</h3>
-        <h1>{{ $customer->phone }}</h1>
-    </div>
-
-</div>
-
-<div class="card">
-
-    <h2>سندات القبض</h2>
-
-    <table>
-        <thead>
-            <tr>
-                <th>رقم الوصل</th>
-                <th>التاريخ</th>
-                <th>المبلغ</th>
-                <th>الملاحظات</th>
-            </tr>
-        </thead>
-
-        <tbody>
-
-        @foreach($receipts as $receipt)
-
-            <tr>
-                <td>{{ $receipt->receipt_no }}</td>
-
-                <td>{{ $receipt->receipt_date }}</td>
-
-                <td style="color:#15803D;font-weight:700">
-                    {{ number_format($receipt->amount,2) }}
-                </td>
-
-                <td>{{ $receipt->notes }}</td>
-            </tr>
-
-        @endforeach
-
-        </tbody>
-
-    </table>
-
-</div>
-
+    {{ $externalInvoicesPage->links() }}
+</section>
 @endsection

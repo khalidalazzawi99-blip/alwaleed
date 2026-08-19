@@ -11,6 +11,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
+        'company_id',
         'name',
         'email',
         'password',
@@ -29,5 +30,14 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-}
 
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function isSuperAdmin()
+    {
+        return $this->role === 'super_admin';
+    }
+}

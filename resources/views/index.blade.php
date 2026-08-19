@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
 <meta charset="UTF-8">
-<title>إدارة الزبائن</title>
+<title>{{ __('إدارة الزبائن') }}</title>
 
 <style>
 body{
@@ -59,41 +59,41 @@ th{
 
 <div class="container">
 
-<h1>إضافة زبون جديد</h1>
+<h1>{{ __('إضافة زبون جديد') }}</h1>
 
 <form method="POST" action="/customers">
 @csrf
 
-<input type="text" name="name" placeholder="اسم الزبون" required>
+<input type="text" name="name" placeholder="{{ __('اسم الزبون') }}" required>
 
-<input type="text" name="phone" placeholder="رقم الهاتف">
+<input type="text" name="phone" placeholder="{{ __('رقم الهاتف') }}">
 
-<input type="text" name="company_name" placeholder="اسم الشركة">
+<input type="text" name="company_name" placeholder="{{ __('اسم الشركة') }}">
 
-<input type="text" name="address" placeholder="العنوان">
+<input type="text" name="address" placeholder="{{ __('العنوان') }}">
 
-<textarea name="notes" placeholder="ملاحظات"></textarea>
+<textarea name="notes" placeholder="{{ __('ملاحظات') }}"></textarea>
 
 <br><br>
 
-<button type="submit">حفظ الزبون</button>
+<button type="submit">{{ __('حفظ الزبون') }}</button>
 
 </form>
 
 <hr>
 
-<h2>الزبائن المسجلين</h2>
+<h2>{{ __('الزبائن المسجلين') }}</h2>
 
 <table>
 
 <tr>
 <th>ID</th>
-<th>الاسم</th>
-<th>الهاتف</th>
-<th>الشركة</th>
-<th>العنوان</th>
+<th>{{ __('الاسم') }}</th>
+<th>{{ __('الهاتف') }}</th>
+<th>{{ __('الشركة') }}</th>
+<th>{{ __('العنوان') }}</th>
 </tr>
-<h3>عدد الزبائن: {{ count($customers) }}</h3>
+<h3>{{ __('messages.customers_count', ['count' => count($customers)]) }}</h3>
 
 @foreach($customers as $customer)
 

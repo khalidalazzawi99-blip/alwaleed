@@ -3,71 +3,80 @@
 @section('content')
 
 <div class="topbar">
-    <h1 class="page-title">🟢 سند قبض</h1>
-    <p style="color:#64748B">تسجيل المبالغ الداخلة إلى الصندوق</p>
+    <h1 class="page-title">{{ __('🟢 سند قبض') }}</h1>
+    <p style="color:#64748B">{{ __('تسجيل المبالغ الداخلة إلى الصندوق') }}</p>
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:22px">
 
 <div class="card">
-<h2>سند جديد</h2>
+<h2>{{ __('سند جديد') }}</h2>
 
 <form method="POST" action="/receipts">
 @csrf
 
-<label style="font-weight:700;display:block;margin-bottom:20px;">رقم الوصل</label>
-<input type="text" value="{{ $nextReceiptNo }}" readonly>
+<label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('رقم الوصل') }}</label>
+<input type="text" id="receiptNumberPreview" value="{{ $nextReceiptNo }}" readonly>
 
 <br><br>
 
-<label style="font-weight:700;display:block;margin-bottom:20px;">التاريخ</label>
-<input type="date" name="receipt_date" value="{{ date('Y-m-d') }}" required>
+<label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('التاريخ') }}</label>
+<input type="date" id="receiptDate" name="receipt_date" value="{{ date('Y-m-d') }}" required>
 
 <br><br>
 
-<label style="font-weight:700;display:block;margin-bottom:20px;">الزبون</label>
-<select name="customer_id" required>
-<option value="">اختر الزبون</option>
+<label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('messages.party') }}</label>
+<select id="receiptParty" required>
+<option value="">{{ __('messages.choose_party') }}</option>
+<optgroup label="{{ __('messages.customers') }}">
 @foreach($customers as $customer)
-<option value="{{ $customer->id }}">{{ $customer->name }}</option>
+<option value="customer:{{ $customer->id }}" @selected(request('party_type') === 'customer' && (int) request('party_id') === $customer->id)>{{ $customer->name }}</option>
 @endforeach
+</optgroup>
+<optgroup label="{{ __('messages.suppliers') }}">
+@foreach($suppliers as $supplier)
+<option value="supplier:{{ $supplier->id }}" @selected(request('party_type') === 'supplier' && (int) request('party_id') === $supplier->id)>{{ $supplier->name }}</option>
+@endforeach
+</optgroup>
 </select>
+<input type="hidden" name="party_type" id="receiptPartyType">
+<input type="hidden" name="party_id" id="receiptPartyId">
 
 <br><br>
 
-<label style="font-weight:700;display:block;margin-bottom:20px;">المبلغ</label>
+<label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('المبلغ') }}</label>
 <input type="number" name="amount" step="0.01" placeholder="250000" required>
 
 <br><br>
 
-<label style="font-weight:700;display:block;margin-bottom:20px;">الملاحظات</label>
-<textarea name="notes" rows="4" placeholder="اكتب ملاحظات السند"></textarea>
+<label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('الملاحظات') }}</label>
+<textarea name="notes" rows="4" placeholder="{{ __('اكتب ملاحظات السند') }}"></textarea>
 
 <br><br>
 
 <button type="submit" class="success" style="width:100%;padding:16px">
-حفظ سند القبض
+{{ __('حفظ سند القبض') }}
 </button>
 
 </form>
 </div>
 
 <div class="card">
-<h2>سندات القبض</h2>
+<h2>{{ __('سندات القبض') }}</h2>
 <input
     type="text"
     id="receiptSearch"
-    placeholder="بحث في سندات القبض..."
+    placeholder="{{ __('بحث في سندات القبض...') }}"
     style="margin-bottom:20px">
 <table>
 <thead>
 <tr>
-<th>رقم الوصل</th>
-<th>التاريخ</th>
-<th>الزبون</th>
-<th>المبلغ</th>
-<th>الملاحظات</th>
-<th>طباعة</th>
+<th>{{ __('رقم الوصل') }}</th>
+<th>{{ __('التاريخ') }}</th>
+<th>{{ __('messages.party') }}</th>
+<th>{{ __('المبلغ') }}</th>
+<th>{{ __('الملاحظات') }}</th>
+<th>{{ __('طباعة') }}</th>
 </tr>
 </thead>
 
@@ -76,23 +85,27 @@
 <tr>
 <td>{{ $receipt->receipt_no }}</td>
 <td>{{ $receipt->receipt_date }}</td>
-<td>{{ $receipt->customer->name ?? '-' }}</td>
+<td>{{ $receipt->party?->name ?? '-' }} <small>({{ $receipt->party_type === 'customer' ? __('messages.customer') : __('messages.supplier') }})</small></td>
 <td style="color:#16A34A;font-weight:800">{{ number_format($receipt->amount,2) }}</td>
 <td>{{ $receipt->notes }}</td>
 <td>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
 
     <a href="/receipts/{{ $receipt->id }}/edit"
        class="btn"
        style="margin-left:10px;">
-       تعديل
+       {{ __('تعديل') }}
     </a>
 
     <a href="/receipts/{{ $receipt->id }}/print"
        class="btn"
        target="_blank"
        style="margin-left:10px;">
-       طباعة
+       {{ __('طباعة') }}
     </a>
+
+    <a href="/receipts/{{ $receipt->id }}/pdf" class="btn">PDF</a>
+    <a href="/receipts/{{ $receipt->id }}/excel" class="btn">Excel</a>
 
     <form action="/receipts/{{ $receipt->id }}"
           method="POST"
@@ -115,13 +128,15 @@
     border:none;
     cursor:pointer;
     "
-    onclick="return confirm('هل أنت متأكد من حذف السند؟')">
+    onclick="return confirm(@js(__('هل أنت متأكد من حذف السند؟')))"
+>
 
-    حذف
+    {{ __('حذف') }}
 
 </button>
 
     </form>
+    </div>
 </td>
 </tr>
 @endforeach
@@ -131,6 +146,27 @@
 
 </div>
 <script>
+const nextReceiptNumbers = @json($nextReceiptNumbers);
+const receiptCurrentYear = {{ now()->year }};
+const receiptParty = document.getElementById('receiptParty');
+const receiptDate = document.getElementById('receiptDate');
+const receiptNumberPreview = document.getElementById('receiptNumberPreview');
+
+function updateReceiptNumberPreview() {
+    const year = receiptDate.value ? receiptDate.value.substring(0, 4) : receiptCurrentYear;
+    const partyKey = receiptParty.value;
+    const [type, id] = partyKey ? partyKey.split(':') : ['', ''];
+    document.getElementById('receiptPartyType').value = type;
+    document.getElementById('receiptPartyId').value = id;
+    receiptNumberPreview.value = year == receiptCurrentYear && partyKey && nextReceiptNumbers[partyKey]
+        ? nextReceiptNumbers[partyKey]
+        : `RCP-${year}-000001`;
+}
+
+receiptParty.addEventListener('change', updateReceiptNumberPreview);
+receiptDate.addEventListener('change', updateReceiptNumberPreview);
+updateReceiptNumberPreview();
+
 document.getElementById('receiptSearch').addEventListener('keyup', function () {
     let value = this.value.toLowerCase();
     let rows = document.querySelectorAll('tbody tr');

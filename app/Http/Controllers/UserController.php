@@ -4,62 +4,261 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
-use App\Models\ActivityLog;
+use App\Models\Company;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    private function onlyAdmin()
+    /*
+    |--------------------------------------------------------------------------
+    | التحقق من صلاحية إدارة المستخدمين
+    |--------------------------------------------------------------------------
+    */
+    private function canManageUsers()
     {
-        if (!auth()->check() || auth()->user()->role !== 'admin') {
-            abort(403, 'غير مسموح بالدخول');
+        if (
+            !auth()->check() ||
+            !in_array(auth()->user()->role, ['super_admin', 'admin'])
+        ) {
+            abort(403, __('غير مسموح بالدخول'));
         }
     }
 
-    private function logActivity($action, $details = null)
-    {
-        ActivityLog::create([
-            'user_name' => auth()->user()->name ?? 'System',
-            'action' => $action,
-            'details' => $details,
-        ]);
-    }
 
+    /*
+    |--------------------------------------------------------------------------
+    | قائمة المستخدمين
+    |--------------------------------------------------------------------------
+    */
     public function index()
     {
-        $this->onlyAdmin();
+        $this->canManageUsers();
+
+        /*
+        | Super Admin يشوف كل المستخدمين
+        */
+        if (auth()->user()->role === 'super_admin') {
+
+            $users = User::with('company')
+                ->latest()
+                ->get();
+
+            $companies = Company::latest()
+                ->get();
+
+        } else {
+
+            /*
+            | مدير الشركة يشوف موظفي شركته فقط
+            */
+            $users = User::where(
+                'company_id',
+                auth()->user()->company_id
+            )
+            ->latest()
+            ->get();
+
+            $companies = collect();
+        }
 
         return view('users.index', [
-            'users' => User::latest()->get(),
+            'users' => $users,
+            'companies' => $companies,
         ]);
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | إضافة مستخدم
+    |--------------------------------------------------------------------------
+    */
     public function store(Request $request)
     {
-        $this->onlyAdmin();
+        $this->canManageUsers();
 
+        $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                'unique:users,email',
+            ],
+
+            'password' => [
+                'required',
+                'string',
+                'min:6',
+            ],
+
+            'role' => [
+                'required',
+                'in:super_admin,admin,accountant,data_entry,viewer',
+            ],
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | تحديد الشركة
+        |--------------------------------------------------------------------------
+        */
+        if (auth()->user()->role === 'super_admin') {
+
+            $companyId = $request->company_id;
+
+        } else {
+
+            $companyId = auth()->user()->company_id;
+
+            /*
+            | مدير الشركة ما يگدر ينشئ Super Admin
+            */
+            if ($request->role === 'super_admin') {
+                abort(403, __('غير مسموح بإنشاء مالك نظام'));
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | التحقق من الحد الأقصى للمستخدمين
+        |--------------------------------------------------------------------------
+        */
+        if ($companyId) {
+
+            $company = Company::findOrFail($companyId);
+
+            $currentUsers = User::where(
+                'company_id',
+                $companyId
+            )->count();
+
+            if ($currentUsers >= $company->max_users) {
+
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'email' => __('تم الوصول إلى الحد الأقصى للمستخدمين لهذه الشركة.'),
+                    ]);
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | إنشاء المستخدم
+        |--------------------------------------------------------------------------
+        */
         $user = User::create([
+            'company_id' => $companyId,
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => Hash::make(
+                $request->password
+            ),
             'role' => $request->role,
         ]);
 
-        $this->logActivity(
-            'إضافة موظف',
-            'تمت إضافة الموظف: ' . $user->name . ' | الصلاحية: ' . $user->role
-        );
 
-        return redirect('/users');
+        return redirect('/users')
+            ->with(
+                'success',
+                __('تم إضافة المستخدم بنجاح')
+            );
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | تعديل المستخدم
+    |--------------------------------------------------------------------------
+    */
     public function update(Request $request, User $user)
     {
-        $this->onlyAdmin();
+        $this->canManageUsers();
 
-        $oldName = $user->name;
-        $oldEmail = $user->email;
-        $oldRole = $user->role;
+
+        /*
+        |--------------------------------------------------------------------------
+        | مدير الشركة ما يگدر يعدل مستخدم شركة ثانية
+        |--------------------------------------------------------------------------
+        */
+        if (
+            auth()->user()->role !== 'super_admin' &&
+            $user->company_id !== auth()->user()->company_id
+        ) {
+            abort(
+                403,
+                __('غير مسموح بتعديل هذا المستخدم')
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | مدير الشركة ما يگدر يعدل Super Admin
+        |--------------------------------------------------------------------------
+        */
+        if (
+            auth()->user()->role !== 'super_admin' &&
+            $user->role === 'super_admin'
+        ) {
+            abort(
+                403,
+                __('غير مسموح بتعديل مالك النظام')
+            );
+        }
+
+
+        $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                'unique:users,email,' . $user->id,
+            ],
+
+            'role' => [
+                'required',
+                'in:super_admin,admin,accountant,data_entry,viewer',
+            ],
+
+            'password' => [
+                'nullable',
+                'string',
+                'min:6',
+            ],
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | منع مدير الشركة من منح Super Admin
+        |--------------------------------------------------------------------------
+        */
+        if (
+            auth()->user()->role !== 'super_admin' &&
+            $request->role === 'super_admin'
+        ) {
+            abort(
+                403,
+                __('غير مسموح بمنح صلاحية مالك النظام')
+            );
+        }
+
 
         $data = [
             'name' => $request->name,
@@ -67,54 +266,103 @@ class UserController extends Controller
             'role' => $request->role,
         ];
 
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Super Admin فقط يگدر ينقل المستخدم بين الشركات
+        |--------------------------------------------------------------------------
+        */
+        if (auth()->user()->role === 'super_admin') {
+            $data['company_id'] = $request->company_id;
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | تغيير كلمة المرور إذا تم إدخالها
+        |--------------------------------------------------------------------------
+        */
+        if ($request->filled('password')) {
+
+            $data['password'] = Hash::make(
+                $request->password
+            );
+        }
+
 
         $user->update($data);
 
-        $details = 'تم تعديل الموظف: ' . $oldName;
 
-        if ($oldName !== $user->name) {
-            $details .= ' | الاسم من ' . $oldName . ' إلى ' . $user->name;
-        }
-
-        if ($oldEmail !== $user->email) {
-            $details .= ' | البريد من ' . $oldEmail . ' إلى ' . $user->email;
-        }
-
-        if ($oldRole !== $user->role) {
-            $details .= ' | الصلاحية من ' . $oldRole . ' إلى ' . $user->role;
-        }
-
-        if ($request->filled('password')) {
-            $details .= ' | تم تغيير كلمة المرور';
-        }
-
-        $this->logActivity('تعديل موظف', $details);
-
-        return redirect('/users');
+        return redirect('/users')
+            ->with(
+                'success',
+                __('تم تحديث المستخدم بنجاح')
+            );
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | حذف المستخدم
+    |--------------------------------------------------------------------------
+    */
     public function destroy(User $user)
     {
-        $this->onlyAdmin();
+        $this->canManageUsers();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | منع المستخدم من حذف نفسه
+        |--------------------------------------------------------------------------
+        */
         if ($user->id === auth()->id()) {
-            return back();
+
+            return back()->withErrors([
+                'user' => __('لا يمكنك حذف حسابك الحالي.'),
+            ]);
         }
 
-        $deletedName = $user->name;
-        $deletedEmail = $user->email;
-        $deletedRole = $user->role;
+
+        /*
+        |--------------------------------------------------------------------------
+        | مدير الشركة ما يگدر يحذف مستخدم شركة ثانية
+        |--------------------------------------------------------------------------
+        */
+        if (
+            auth()->user()->role !== 'super_admin' &&
+            $user->company_id !== auth()->user()->company_id
+        ) {
+            abort(
+                403,
+                __('غير مسموح بحذف هذا المستخدم')
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | منع مدير الشركة من حذف Super Admin
+        |--------------------------------------------------------------------------
+        */
+        if (
+            auth()->user()->role !== 'super_admin' &&
+            $user->role === 'super_admin'
+        ) {
+            abort(
+                403,
+                __('غير مسموح بحذف مالك النظام')
+            );
+        }
+
 
         $user->delete();
 
-        $this->logActivity(
-            'حذف موظف',
-            'تم حذف الموظف: ' . $deletedName . ' | البريد: ' . $deletedEmail . ' | الصلاحية: ' . $deletedRole
-        );
 
-        return redirect('/users');
+        return redirect('/users')
+            ->with(
+                'success',
+                __('تم حذف المستخدم بنجاح')
+            );
     }
 }

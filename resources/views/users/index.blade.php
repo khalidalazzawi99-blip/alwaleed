@@ -3,46 +3,75 @@
 @section('content')
 
 <div class="topbar">
-    <h1 class="page-title">إدارة الموظفين</h1>
-    <p style="color:#8A8178">إضافة وتعديل صلاحيات الموظفين</p>
+    <h1 class="page-title">
+        @if(auth()->user()->role == 'super_admin')
+            {{ __('مستخدمو النظام') }}
+        @else
+            {{ __('موظفو الشركة') }}
+        @endif
+    </h1>
+
+    <p style="color:#8A8178">{{ __('إضافة وتعديل المستخدمين والصلاحيات') }}</p>
 </div>
 
 <div class="card">
-    <h2>إضافة موظف جديد</h2>
+    <h2>{{ __('إضافة مستخدم جديد') }}</h2>
 
     <form method="POST" action="/users">
         @csrf
 
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:15px">
-            <input type="text" name="name" placeholder="اسم الموظف" required>
-            <input type="email" name="email" placeholder="البريد الإلكتروني" required>
-            <input type="password" name="password" placeholder="كلمة المرور" required>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:15px">
+
+            <input type="text" name="name" placeholder="{{ __('اسم المستخدم') }}" required>
+
+            <input type="email" name="email" placeholder="{{ __('البريد الإلكتروني') }}" required>
+
+            <input type="password" name="password" placeholder="{{ __('كلمة المرور') }}" required>
+
+            @if(auth()->user()->role == 'super_admin')
+                <select name="company_id">
+                    <option value="">{{ __('بدون شركة / مالك النظام') }}</option>
+                    @foreach($companies as $company)
+                        <option value="{{ $company->id }}">{{ $company->name }}</option>
+                    @endforeach
+                </select>
+            @endif
 
             <select name="role" required>
-                <option value="admin">مدير</option>
-                <option value="accountant">محاسب</option>
-                <option value="data_entry">إدخال بيانات</option>
-                <option value="viewer">مشاهدة فقط</option>
+                @if(auth()->user()->role == 'super_admin')
+                    <option value="super_admin">{{ __('مالك النظام') }}</option>
+                @endif
+
+                <option value="admin">{{ __('مدير الشركة') }}</option>
+                <option value="accountant">{{ __('محاسب') }}</option>
+                <option value="data_entry">{{ __('إدخال بيانات') }}</option>
+                <option value="viewer">{{ __('مشاهدة فقط') }}</option>
             </select>
+
         </div>
 
         <br>
 
-        <button type="submit">إضافة الموظف</button>
+        <button type="submit">{{ __('إضافة المستخدم') }}</button>
     </form>
 </div>
 
 <div class="card">
-    <h2>قائمة الموظفين</h2>
+    <h2>{{ __('قائمة المستخدمين') }}</h2>
 
     <table>
         <thead>
             <tr>
-                <th>الاسم</th>
-                <th>البريد</th>
-                <th>الصلاحية</th>
-                <th>كلمة مرور جديدة</th>
-                <th>إجراءات</th>
+                <th>{{ __('الاسم') }}</th>
+                <th>{{ __('البريد') }}</th>
+
+                @if(auth()->user()->role == 'super_admin')
+                    <th>{{ __('الشركة') }}</th>
+                @endif
+
+                <th>{{ __('الصلاحية') }}</th>
+                <th>{{ __('كلمة مرور جديدة') }}</th>
+                <th>{{ __('إجراءات') }}</th>
             </tr>
         </thead>
 
@@ -61,22 +90,41 @@
                         <input type="email" name="email" value="{{ $user->email }}" required>
                     </td>
 
+                    @if(auth()->user()->role == 'super_admin')
+                        <td>
+                            <select name="company_id">
+                                <option value="">{{ __('بدون شركة') }}</option>
+                                @foreach($companies as $company)
+                                    <option value="{{ $company->id }}" {{ $user->company_id == $company->id ? 'selected' : '' }}>
+                                        {{ $company->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </td>
+                    @endif
+
                     <td>
                         <select name="role" required>
-                            <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>مدير</option>
-                            <option value="accountant" {{ $user->role == 'accountant' ? 'selected' : '' }}>محاسب</option>
-                            <option value="data_entry" {{ $user->role == 'data_entry' ? 'selected' : '' }}>إدخال بيانات</option>
-                            <option value="viewer" {{ $user->role == 'viewer' ? 'selected' : '' }}>مشاهدة فقط</option>
+                            @if(auth()->user()->role == 'super_admin')
+                                <option value="super_admin" {{ $user->role == 'super_admin' ? 'selected' : '' }}>
+                                    {{ __('مالك النظام') }}
+                                </option>
+                            @endif
+
+                            <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>{{ __('مدير الشركة') }}</option>
+                            <option value="accountant" {{ $user->role == 'accountant' ? 'selected' : '' }}>{{ __('محاسب') }}</option>
+                            <option value="data_entry" {{ $user->role == 'data_entry' ? 'selected' : '' }}>{{ __('إدخال بيانات') }}</option>
+                            <option value="viewer" {{ $user->role == 'viewer' ? 'selected' : '' }}>{{ __('مشاهدة فقط') }}</option>
                         </select>
                     </td>
 
                     <td>
-                        <input type="password" name="password" placeholder="اتركه فارغ إذا ما تريد تغييرها">
+                        <input type="password" name="password" placeholder="{{ __('اتركه فارغ إذا ما تريد تغييرها') }}">
                     </td>
 
                     <td>
                         <button type="submit" class="success" style="margin-left:8px">
-                            حفظ
+                            {{ __('حفظ') }}
                         </button>
                 </form>
 
@@ -88,8 +136,8 @@
                                 <button type="submit"
                                         class="danger"
                                         style="background:#DC2626"
-                                        onclick="return confirm('هل تريد حذف هذا الموظف؟')">
-                                    حذف
+                                        onclick="return confirm(@js(__('هل تريد حذف هذا المستخدم؟')))"
+                                    {{ __('حذف') }}
                                 </button>
                             </form>
                         @endif
