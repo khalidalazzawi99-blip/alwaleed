@@ -7,13 +7,14 @@ COPY . .
 RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     git \
+    libpq-dev \
     libsqlite3-dev \
     libzip-dev \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd zip pdo_sqlite opcache \
+    && docker-php-ext-install -j$(nproc) gd zip pdo_pgsql pdo_sqlite opcache \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -26,12 +27,10 @@ RUN php artisan config:clear || true
 
 EXPOSE 10000
 
-CMD if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then \
-        database_file="${DB_DATABASE:-/var/data/database.sqlite}"; \
-        if [ "$database_file" != ":memory:" ]; then \
-            mkdir -p "$(dirname "$database_file")"; \
-            [ -f "$database_file" ] || touch "$database_file"; \
-        fi; \
-    fi \
-    && php artisan migrate --force \
+CMD php artisan migrate --force \
+    && if [ -n "${INITIAL_ADMIN_EMAIL:-}" ] \
+        && [ -n "${INITIAL_ADMIN_NAME:-}" ] \
+        && [ -n "${INITIAL_ADMIN_PASSWORD:-}" ]; then \
+            php artisan db:seed --class=AdminUserSeeder --force; \
+       fi \
     && exec php artisan serve --host=0.0.0.0 --port=10000
