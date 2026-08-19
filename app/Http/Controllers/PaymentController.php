@@ -31,9 +31,9 @@ class PaymentController extends Controller
         $year = now()->year;
         $nextPaymentNumbers = $suppliers->mapWithKeys(fn ($party) => [
             'supplier:'.$party->id => $this->nextPaymentNumber($companyId, 'supplier', $party->id, $year),
-        ])->merge($customers->mapWithKeys(fn ($party) => [
+        ])->toBase()->merge($customers->mapWithKeys(fn ($party) => [
             'customer:'.$party->id => $this->nextPaymentNumber($companyId, 'customer', $party->id, $year),
-        ]));
+        ])->toBase());
 
         return view('payments.index', [
             'suppliers' => $suppliers,

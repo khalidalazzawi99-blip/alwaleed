@@ -32,9 +32,9 @@ class ReceiptController extends Controller
         $year = now()->year;
         $nextReceiptNumbers = $customers->mapWithKeys(fn ($party) => [
             'customer:'.$party->id => $this->nextReceiptNumber($companyId, 'customer', $party->id, $year),
-        ])->merge($suppliers->mapWithKeys(fn ($party) => [
+        ])->toBase()->merge($suppliers->mapWithKeys(fn ($party) => [
             'supplier:'.$party->id => $this->nextReceiptNumber($companyId, 'supplier', $party->id, $year),
-        ]));
+        ])->toBase());
 
         return view('receipts.index', [
             'customers' => $customers,
