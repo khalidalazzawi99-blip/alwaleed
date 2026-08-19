@@ -26,7 +26,7 @@ class BackupController extends Controller
         | مسار قاعدة البيانات
         |--------------------------------------------------------------------------
         */
-        $dbPath = database_path('database.sqlite');
+        $dbPath = config('database.connections.sqlite.database');
 
         if (!File::exists($dbPath)) {
             return back()->with(

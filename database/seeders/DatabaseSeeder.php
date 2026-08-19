@@ -8,8 +8,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([
-            AdminUserSeeder::class,
-        ]);
+        // Intentionally empty. Production users are created explicitly by
+        // running AdminUserSeeder once, never during normal deployments.
     }
 }

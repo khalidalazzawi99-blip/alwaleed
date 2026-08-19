@@ -27,7 +27,7 @@ RUN php artisan config:clear || true
 EXPOSE 10000
 
 CMD if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then \
-        database_file="${DB_DATABASE:-/app/database/database.sqlite}"; \
+        database_file="${DB_DATABASE:-/var/data/database.sqlite}"; \
         if [ "$database_file" != ":memory:" ]; then \
             mkdir -p "$(dirname "$database_file")"; \
             [ -f "$database_file" ] || touch "$database_file"; \

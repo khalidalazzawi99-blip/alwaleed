@@ -3,14 +3,17 @@
 Configure a Render Persistent Disk with this mount path:
 
 ```text
-/app/database
+/var/data
 ```
 
 Configure these Render environment variables:
 
 ```text
 DB_CONNECTION=sqlite
-DB_DATABASE=/app/database/database.sqlite
+DB_DATABASE=/var/data/database.sqlite
+INITIAL_ADMIN_NAME=خالد العزاوي
+INITIAL_ADMIN_EMAIL=<set in Render>
+INITIAL_ADMIN_PASSWORD=<temporary; remove after first setup>
 ```
 
 The container creates the SQLite file only when it does not already exist, then runs `php artisan migrate --force`. Normal deployments do not run database seeders and do not replace existing users or passwords.
@@ -23,6 +26,9 @@ On a genuinely empty database, migrations create the schema but no user. To crea
 2. From Render Shell, run:
 
    ```text
+   [ -f /var/data/database.sqlite ] || touch /var/data/database.sqlite
+   php artisan config:clear
+   php artisan migrate --force
    php artisan db:seed --class=AdminUserSeeder --force
    ```
 
