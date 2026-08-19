@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\View;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -41,6 +42,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        View::composer('*', function ($view) {
+            $companyId = auth()->user()?->company_id;
+            static $currencies = [];
+
+            if ($companyId && ! array_key_exists($companyId, $currencies)) {
+                $currencies[$companyId] = Setting::where('company_id', $companyId)->value('currency') ?: 'IQD';
+            }
+
+            $view->with('companyCurrency', $companyId ? $currencies[$companyId] : 'IQD');
+        });
+
         foreach ([
             Account::class,
             Cashbox::class,

@@ -400,7 +400,7 @@
 
 
     {{-- تنبيه الصندوق --}}
-    @if($balance < 100000)
+    @if($balance < $lowBalanceThreshold)
 
         <div class="alert alert-danger">
 
@@ -409,7 +409,7 @@
             </h3>
 
             <p>
-                {{ __('messages.low_balance_text') }}
+                {{ __('messages.low_balance_text', ['threshold' => number_format($lowBalanceThreshold, 0), 'currency' => $companyCurrency]) }}
             </p>
 
         </div>
@@ -518,7 +518,7 @@
                 </span>
 
                 <strong class="green">
-                    {{ number_format($todayReceipts, 0) }} IQD
+                    {{ number_format($todayReceipts, 0) }} {{ $companyCurrency }}
                 </strong>
 
             </div>
@@ -531,7 +531,7 @@
                 </span>
 
                 <strong class="red">
-                    {{ number_format($todayPayments, 0) }} IQD
+                    {{ number_format($todayPayments, 0) }} {{ $companyCurrency }}
                 </strong>
 
             </div>
@@ -544,7 +544,7 @@
                 </span>
 
                 <strong class="{{ $todayNet >= 0 ? 'green' : 'red' }}">
-                    {{ number_format($todayNet, 0) }} IQD
+                    {{ number_format($todayNet, 0) }} {{ $companyCurrency }}
                 </strong>
 
             </div>

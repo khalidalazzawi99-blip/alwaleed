@@ -87,7 +87,7 @@ name="company_logo">
 <div style="margin-top:15px">
 
 <img
-src="{{ asset('storage/'.$setting->company_logo) }}"
+src="{{ app(\App\Services\CompanyBrandService::class)->logoDataUri(auth()->user()?->company_id) }}"
 style="height:90px;border-radius:14px">
 
 </div>

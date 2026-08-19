@@ -12,21 +12,21 @@
     <div class="card">
         <h3>{{ __('الرصيد الحالي') }}</h3>
         <h1 style="color:#2563EB">
-            {{ number_format($balance,2) }} IQD
+            {{ number_format($balance,2) }} {{ $companyCurrency }}
         </h1>
     </div>
 
     <div class="card">
         <h3>{{ __('إجمالي الداخل') }}</h3>
         <h1 style="color:#16A34A">
-            {{ number_format($totalReceipts,2) }} IQD
+            {{ number_format($totalReceipts,2) }} {{ $companyCurrency }}
         </h1>
     </div>
 
     <div class="card">
         <h3>{{ __('إجمالي الخارج') }}</h3>
         <h1 style="color:#DC2626">
-            {{ number_format($totalPayments,2) }} IQD
+            {{ number_format($totalPayments,2) }} {{ $companyCurrency }}
         </h1>
     </div>
 

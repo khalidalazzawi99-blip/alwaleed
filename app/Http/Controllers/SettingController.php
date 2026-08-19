@@ -67,7 +67,7 @@ class SettingController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string'],
-            'currency' => ['nullable', 'string', 'max:20'],
+            'currency' => ['required', 'in:IQD,USD'],
             'company_logo' => ['nullable', 'image', 'max:2048'],
         ]);
 

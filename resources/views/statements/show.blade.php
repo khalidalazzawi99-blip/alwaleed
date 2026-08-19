@@ -31,10 +31,10 @@
     </form>
 
     <section class="statement-kpis">
-        <div class="statement-kpi"><span>{{ __('messages.total_invoiced') }}</span><strong>{{ number_format($totalInvoiced, 2) }}</strong></div>
-        <div class="statement-kpi received"><span>{{ __('messages.total_received') }}</span><strong>{{ number_format($totalReceived, 2) }}</strong></div>
-        <div class="statement-kpi paid"><span>{{ __('messages.total_paid') }}</span><strong>{{ number_format($totalPaid, 2) }}</strong></div>
-        <div class="statement-kpi balance"><span>{{ __('messages.current_balance') }}</span><strong class="{{ $balance >= 0 ? 'positive' : 'negative' }}">{{ number_format($balance, 2) }}</strong></div>
+        <div class="statement-kpi"><span>{{ __('messages.total_invoiced') }}</span><strong>{{ number_format($totalInvoiced, 2) }} {{ $companyCurrency }}</strong></div>
+        <div class="statement-kpi received"><span>{{ __('messages.total_received') }}</span><strong>{{ number_format($totalReceived, 2) }} {{ $companyCurrency }}</strong></div>
+        <div class="statement-kpi paid"><span>{{ __('messages.total_paid') }}</span><strong>{{ number_format($totalPaid, 2) }} {{ $companyCurrency }}</strong></div>
+        <div class="statement-kpi balance"><span>{{ __('messages.current_balance') }}</span><strong class="{{ $balance >= 0 ? 'positive' : 'negative' }}">{{ number_format($balance, 2) }} {{ $companyCurrency }}</strong></div>
         <div class="statement-kpi"><span>{{ __('messages.movements_count') }}</span><strong>{{ $movementsCount }}</strong></div>
     </section>
 

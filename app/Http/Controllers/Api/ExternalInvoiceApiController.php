@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\ExternalInvoice;
 use App\Models\ExternalInvoiceIntegration;
 use App\Models\IntegrationLog;
+use App\Models\Setting;
 use App\Services\CustomerBalanceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +55,7 @@ class ExternalInvoiceApiController extends Controller
                         'invoice_no' => $data['invoice_no'],
                         'invoice_date' => $data['invoice_date'],
                         'amount' => $data['amount'],
+                        'currency' => Setting::where('company_id', $company->id)->value('currency') ?: 'IQD',
                     ]
                 );
             });

@@ -18,7 +18,7 @@
             <thead><tr><th>{{ __('messages.invoice_number') }}</th><th>{{ __('messages.date') }}</th><th>{{ __('messages.amount') }}</th></tr></thead>
             <tbody>
             @forelse($externalInvoicesPage as $invoice)
-                <tr><td>{{ $invoice->invoice_no }}</td><td>{{ $invoice->invoice_date?->format('Y/m/d') }}</td><td>{{ number_format($invoice->amount, 2) }}</td></tr>
+                <tr><td>{{ $invoice->invoice_no }}</td><td>{{ $invoice->invoice_date?->format('Y/m/d') }}</td><td>{{ number_format($invoice->amount, 2) }} {{ $companyCurrency }}</td></tr>
             @empty
                 <tr><td colspan="3">{{ __('messages.no_external_invoices') }}</td></tr>
             @endforelse

@@ -22,6 +22,8 @@ RUN composer install --no-dev --optimize-autoloader
 
 RUN touch database/database.sqlite
 
+RUN php artisan storage:link || true
+
 RUN php artisan config:clear || true
 
 EXPOSE 10000

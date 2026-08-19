@@ -13,7 +13,7 @@
 </head>
 <body>
 @php
-    $logo = $setting?->company_logo ? asset('storage/'.$setting->company_logo) : ($company?->logo ? asset('storage/'.$company->logo) : asset('logo.png'));
+    $logo = app(\App\Services\CompanyBrandService::class)->logoDataUri($company?->id);
     $companyName = $setting?->company_name ?: ($company?->name ?: 'Al Waleed');
     $currency = $setting?->currency ?: 'IQD';
 @endphp

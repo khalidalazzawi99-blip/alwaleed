@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Cashbox;
+use App\Models\Setting;
 use App\Models\SystemNotification;
 use App\Models\User;
 use Carbon\Carbon;
@@ -37,10 +38,16 @@ class SystemAlertService
     private function cashboxAlert(User $user): void
     {
         $balance = Cashbox::where('company_id', $user->company_id)->value('balance');
-        if ($balance === null || $balance >= config('notifications.low_balance_threshold')) return;
+        $currency = Setting::where('company_id', $user->company_id)->value('currency') ?: 'IQD';
+        $threshold = config('notifications.low_balance_thresholds.'.$currency, 100000);
+        if ($balance === null || $balance >= $threshold) return;
 
         $this->daily($user, 'low_balance', __('messages.balance_alert_title'),
-            __('messages.balance_alert_message', ['balance' => number_format($balance, 2)]),
+            __('messages.balance_alert_message', [
+                'balance' => number_format($balance, 2),
+                'threshold' => number_format($threshold, 0),
+                'currency' => $currency,
+            ]),
             in_array($user->role, ['admin', 'accountant']) ? '/cashbox' : '/dashboard');
     }
 

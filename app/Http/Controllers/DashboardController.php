@@ -9,6 +9,7 @@ use App\Models\Receipt;
 use App\Models\Payment;
 use App\Models\Company;
 use App\Models\User;
+use App\Models\Setting;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -29,6 +30,8 @@ class DashboardController extends Controller
 
         $companyId = $user->company_id;
         $company = $user->company;
+        $currency = Setting::where('company_id', $companyId)->value('currency') ?: 'IQD';
+        $lowBalanceThreshold = config('notifications.low_balance_thresholds.'.$currency, 100000);
 
         /*
         |--------------------------------------------------------------------------
@@ -176,6 +179,8 @@ class DashboardController extends Controller
             'suppliers' => $suppliers,
 
             'balance' => $balance,
+
+            'lowBalanceThreshold' => $lowBalanceThreshold,
 
             'totalReceipts' => $totalReceipts,
 

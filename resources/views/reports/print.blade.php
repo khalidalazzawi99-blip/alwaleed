@@ -175,7 +175,7 @@ button{
 
     <div class="header">
         <div class="logo">
-            <img src="/logo.png">
+            <img src="{{ app(\App\Services\CompanyBrandService::class)->logoDataUri(auth()->user()?->company_id) }}" alt="Al Waleed">
         </div>
 
         <div class="report-title">

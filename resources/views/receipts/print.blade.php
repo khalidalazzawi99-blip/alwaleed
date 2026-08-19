@@ -135,7 +135,7 @@ body{
 <div class="receipt">
 
     <div class="header">
-        <img src="/logo.png" alt="Al Waleed">
+        <img src="{{ app(\App\Services\CompanyBrandService::class)->logoDataUri($receipt->company_id) }}" alt="{{ $receipt->company?->name ?: 'Al Waleed' }}">
         <div class="title">{{ __('سند قبض') }}</div>
     </div>
 
@@ -164,7 +164,7 @@ body{
         </div>
 
         <div class="amount">
-            {{ number_format($receipt->amount,2) }} IQD
+            {{ number_format($receipt->amount,2) }} {{ $companyCurrency }}
         </div>
 
         <div>
