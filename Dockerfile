@@ -20,12 +20,18 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 RUN composer install --no-dev --optimize-autoloader
 
-RUN touch database/database.sqlite
-
 RUN php artisan storage:link || true
 
 RUN php artisan config:clear || true
 
 EXPOSE 10000
 
-CMD php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=10000
+CMD if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then \
+        database_file="${DB_DATABASE:-/app/database/database.sqlite}"; \
+        if [ "$database_file" != ":memory:" ]; then \
+            mkdir -p "$(dirname "$database_file")"; \
+            [ -f "$database_file" ] || touch "$database_file"; \
+        fi; \
+    fi \
+    && php artisan migrate --force \
+    && exec php artisan serve --host=0.0.0.0 --port=10000

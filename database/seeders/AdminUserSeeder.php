@@ -10,22 +10,26 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::updateOrCreate(
+        $email = (string) env('INITIAL_ADMIN_EMAIL', 'admin@alwaleed.com');
 
-            ['email' => 'admin@alwaleed.com'],
+        if (User::where('email', $email)->exists()) {
+            $this->command?->info('Initial admin already exists; existing credentials were preserved.');
+            return;
+        }
 
-            [
-                'company_id' => null,
+        $password = (string) env('INITIAL_ADMIN_PASSWORD', '');
 
-                'name' => 'Khalid Alazzawi',
+        if ($password === '') {
+            $this->command?->warn('INITIAL_ADMIN_PASSWORD is not set; no admin user was created.');
+            return;
+        }
 
-                'email' => 'admin@alwaleed.com',
-
-                'password' => Hash::make('12345678'),
-
-                'role' => 'super_admin',
-            ]
-
-        );
+        User::create([
+            'company_id' => null,
+            'name' => (string) env('INITIAL_ADMIN_NAME', 'System Owner'),
+            'email' => $email,
+            'password' => Hash::make($password),
+            'role' => 'super_admin',
+        ]);
     }
 }
