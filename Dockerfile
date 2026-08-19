@@ -28,9 +28,5 @@ RUN php artisan config:clear || true
 EXPOSE 10000
 
 CMD php artisan migrate --force \
-    && if [ -n "${INITIAL_ADMIN_EMAIL:-}" ] \
-        && [ -n "${INITIAL_ADMIN_NAME:-}" ] \
-        && [ -n "${INITIAL_ADMIN_PASSWORD:-}" ]; then \
-            php artisan db:seed --class=AdminUserSeeder --force; \
-       fi \
+    && php artisan db:seed --class=AdminUserSeeder --force \
     && exec php artisan serve --host=0.0.0.0 --port=10000

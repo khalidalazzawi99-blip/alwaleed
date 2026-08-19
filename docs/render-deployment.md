@@ -14,7 +14,7 @@ INITIAL_ADMIN_EMAIL=<set in Render>
 INITIAL_ADMIN_PASSWORD=<temporary; remove after first setup>
 ```
 
-The container runs only forward migrations with `php artisan migrate --force`. It runs `AdminUserSeeder` only while all three `INITIAL_ADMIN_*` variables are present.
+The container runs forward migrations with `php artisan migrate --force`, then invokes `AdminUserSeeder` before starting the web server. The seeder creates an admin only while all three `INITIAL_ADMIN_*` variables are present.
 
 ## First installation only
 
