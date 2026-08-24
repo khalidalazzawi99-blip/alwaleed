@@ -8,7 +8,7 @@ use App\Models\Payment;
 use App\Models\Receipt;
 use App\Models\Setting;
 use App\Exports\ArrayExport;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\DocumentExportService;
 use Maatwebsite\Excel\Facades\Excel;
 
 class SupplierController extends Controller
@@ -61,14 +61,12 @@ class SupplierController extends Controller
         return view('suppliers.print', $this->statementData($request, $supplier));
     }
 
-    public function pdf(Request $request, Supplier $supplier)
+    public function pdf(Request $request, Supplier $supplier, DocumentExportService $exports)
     {
         $this->ensureSupplierBelongsToCompany($supplier);
         $data = $this->statementData($request, $supplier);
 
-        return Pdf::loadView('suppliers.print', $data + ['pdfMode' => true])
-            ->setPaper('a4')
-            ->download('supplier-statement-'.$supplier->id.'.pdf');
+        return $exports->pdf('suppliers.print', $data, 'supplier-statement-'.$supplier->id.'.pdf');
     }
 
     public function excel(Request $request, Supplier $supplier)
@@ -155,7 +153,7 @@ class SupplierController extends Controller
         return new ArrayExport([
             '#', __('messages.date'), __('messages.reference'), __('messages.movement_type'),
             __('messages.invoiced'), __('messages.received'), __('messages.paid'), __('messages.running_balance'), __('messages.notes'),
-        ], $rows);
+        ], $rows, 'كشف حساب المورد — '.$data['supplier']->name, $data['supplier']->company_id);
     }
 
     private function ensureSupplierBelongsToCompany(Supplier $supplier)

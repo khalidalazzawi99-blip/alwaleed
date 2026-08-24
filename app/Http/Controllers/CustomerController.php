@@ -9,7 +9,7 @@ use App\Models\Payment;
 use App\Models\ExternalInvoice;
 use App\Models\Setting;
 use App\Exports\ArrayExport;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\DocumentExportService;
 use Maatwebsite\Excel\Facades\Excel;
 
 class CustomerController extends Controller
@@ -74,14 +74,12 @@ class CustomerController extends Controller
         return view('customers.print', $this->statementData($request, $customer));
     }
 
-    public function pdf(Request $request, Customer $customer)
+    public function pdf(Request $request, Customer $customer, DocumentExportService $exports)
     {
         $this->ensureCustomerBelongsToCompany($customer);
         $data = $this->statementData($request, $customer);
 
-        return Pdf::loadView('customers.print', $data + ['pdfMode' => true])
-            ->setPaper('a4')
-            ->download('customer-statement-'.$customer->id.'.pdf');
+        return $exports->pdf('customers.print', $data, 'customer-statement-'.$customer->id.'.pdf');
     }
 
     public function excel(Request $request, Customer $customer)
@@ -115,31 +113,50 @@ class CustomerController extends Controller
 
         $externalInvoices = ExternalInvoice::where('company_id', $customer->company_id)->where('customer_id', $customer->id)
             ->when($filters['from'] ?? null, fn ($query, $date) => $query->whereDate('invoice_date', '>=', $date))
-            ->when($filters['to'] ?? null, fn ($query, $date) => $query->whereDate('invoice_date', '<=', $date));
-        $totalInvoices = (float) (clone $externalInvoices)->sum('amount');
+            ->when($filters['to'] ?? null, fn ($query, $date) => $query->whereDate('invoice_date', '<=', $date))
+            ->orderBy('invoice_date')->orderBy('id')->get();
+        $totalInvoices = (float) $externalInvoices->sum('amount');
 
-        $runningBalance = $totalInvoices;
-        $movements = $receipts->map(fn (Receipt $receipt) => (object) [
+        // Customers that are not linked to external invoices use a cash-style
+        // statement: receipts increase the balance and payments decrease it.
+        // Once invoices exist, the balance represents the outstanding amount.
+        $hasInvoices = $totalInvoices > 0;
+        $runningBalance = 0;
+        $movements = $externalInvoices->map(fn (ExternalInvoice $invoice) => (object) [
+                'number' => $invoice->invoice_no,
+                'date' => $invoice->invoice_date->toDateString(),
+                'sort_id' => $invoice->id,
+                'sort_order' => 0,
+                'type' => __('فاتورة'),
+                'invoiced' => (float) $invoice->amount,
+                'received' => 0,
+                'paid' => 0,
+                'notes' => null,
+            ])->concat($receipts->map(fn (Receipt $receipt) => (object) [
                 'number' => $receipt->receipt_no,
-                'date' => $receipt->receipt_date,
+                'date' => date('Y-m-d', strtotime($receipt->receipt_date)),
                 'sort_id' => $receipt->id,
+                'sort_order' => 1,
                 'type' => __('قبض'),
                 'invoiced' => 0,
                 'received' => (float) $receipt->amount,
                 'paid' => 0,
                 'notes' => $receipt->notes,
-            ])->concat($payments->map(fn (Payment $payment) => (object) [
+            ]))->concat($payments->map(fn (Payment $payment) => (object) [
                 'number' => $payment->payment_no,
-                'date' => $payment->payment_date,
+                'date' => date('Y-m-d', strtotime($payment->payment_date)),
                 'sort_id' => $payment->id,
+                'sort_order' => 2,
                 'type' => __('صرف'),
                 'invoiced' => 0,
                 'received' => 0,
                 'paid' => (float) $payment->amount,
                 'notes' => $payment->notes,
-            ]))->sortBy(fn ($movement) => $movement->date.'-'.str_pad($movement->sort_id, 12, '0', STR_PAD_LEFT))->values()
-            ->map(function ($movement) use (&$runningBalance) {
-                $runningBalance -= $movement->received;
+            ]))->sortBy(fn ($movement) => $movement->date.'-'.$movement->sort_order.'-'.str_pad($movement->sort_id, 12, '0', STR_PAD_LEFT))->values()
+            ->map(function ($movement) use (&$runningBalance, $hasInvoices) {
+                $runningBalance += $hasInvoices
+                    ? $movement->invoiced + $movement->paid - $movement->received
+                    : $movement->received - $movement->paid;
                 $movement->balance = $runningBalance;
                 return $movement;
             });
@@ -152,7 +169,7 @@ class CustomerController extends Controller
             'totalReceived' => $receipts->sum('amount'),
             'totalPaid' => $payments->sum('amount'),
             'totalInvoiced' => $totalInvoices,
-            'balance' => $totalInvoices - (float) $receipts->sum('amount'),
+            'balance' => $runningBalance,
             'movementsCount' => $movements->count(),
             'from' => $filters['from'] ?? null,
             'to' => $filters['to'] ?? null,
@@ -173,7 +190,7 @@ class CustomerController extends Controller
         return new ArrayExport([
             '#', __('messages.date'), __('messages.reference'), __('messages.movement_type'),
             __('messages.invoiced'), __('messages.received'), __('messages.paid'), __('messages.running_balance'), __('messages.notes'),
-        ], $rows);
+        ], $rows, 'كشف حساب الزبون — '.$data['customer']->name, $data['customer']->company_id);
     }
 
     private function ensureCustomerBelongsToCompany(Customer $customer)

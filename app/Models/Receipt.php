@@ -8,6 +8,7 @@ class Receipt extends Model
 {
     protected $fillable = [
         'company_id',
+        'cashbox_id',
         'receipt_no',
         'receipt_date',
         'customer_id',
@@ -19,6 +20,11 @@ class Receipt extends Model
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function cashbox()
+    {
+        return $this->belongsTo(Cashbox::class);
     }
 
     public function customer()

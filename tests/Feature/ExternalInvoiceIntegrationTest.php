@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\ExternalInvoice;
 use App\Models\ExternalInvoiceIntegration;
 use App\Models\Receipt;
+use App\Models\Payment;
 use App\Models\User;
 use App\Services\CustomerBalanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -109,6 +110,45 @@ class ExternalInvoiceIntegrationTest extends TestCase
         $this->actingAs($user)->get('/customers/'.$customer->id)->assertOk()
             ->assertSee('1,000.00')->assertSee('250.00')->assertSee('750.00')->assertDontSee('9,000,000.00');
         $this->actingAs($user)->get('/customers/'.$otherCustomer->id)->assertForbidden();
+    }
+
+    public function test_customer_with_receipts_only_has_a_positive_balance(): void
+    {
+        $company = $this->company();
+        $customer = $this->customer($company, 'C-155');
+        $this->receipt($company, $customer, 500000);
+        Payment::create([
+            'company_id' => $company->id,
+            'customer_id' => $customer->id,
+            'payment_no' => 'PAY-'.Str::random(8),
+            'payment_date' => now(),
+            'amount' => 125000,
+        ]);
+        $user = User::factory()->create(['company_id' => $company->id, 'role' => 'admin']);
+
+        $this->actingAs($user)->get('/customers/'.$customer->id)
+            ->assertOk()
+            ->assertViewHas('balance', 375000.0)
+            ->assertSee('375,000.00');
+    }
+
+    public function test_invoice_appears_in_customer_movement_history_in_date_order(): void
+    {
+        $company = $this->company();
+        $customer = $this->customer($company, 'C-155');
+        $this->invoice($company, $customer, 'INV-MOVEMENT', 1000);
+        $this->receipt($company, $customer, 250);
+        $user = User::factory()->create(['company_id' => $company->id, 'role' => 'admin']);
+
+        $this->actingAs($user)->get('/customers/'.$customer->id)
+            ->assertOk()
+            ->assertViewHas('movements', function ($movements) {
+                return $movements->count() === 2
+                    && $movements[0]->type === 'فاتورة'
+                    && $movements[0]->balance === 1000.0
+                    && $movements[1]->type === 'قبض'
+                    && $movements[1]->balance === 750.0;
+            });
     }
 
     private function company(string $suffix = ''): Company

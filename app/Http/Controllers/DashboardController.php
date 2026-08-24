@@ -58,10 +58,7 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $cashbox = Cashbox::where('company_id', $companyId)
-            ->first();
-
-        $balance = $cashbox?->balance ?? 0;
+        $balance = Cashbox::where('company_id', $companyId)->sum('balance');
 
         /*
         |--------------------------------------------------------------------------

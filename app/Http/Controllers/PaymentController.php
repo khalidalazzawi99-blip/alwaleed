@@ -10,7 +10,7 @@ use App\Models\Cashbox;
 use App\Models\CashboxLog;
 use Illuminate\Support\Facades\DB;
 use App\Exports\ArrayExport;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\DocumentExportService;
 use Maatwebsite\Excel\Facades\Excel;
 
 class PaymentController extends Controller
@@ -19,7 +19,7 @@ class PaymentController extends Controller
     {
         $companyId = auth()->user()->company_id;
 
-        $payments = Payment::with(['customer', 'supplier'])->where('company_id', $companyId)
+        $payments = Payment::with(['customer', 'supplier', 'cashbox'])->where('company_id', $companyId)
             ->latest()
             ->get();
         $customers = Customer::where('company_id', $companyId)->orderBy('name')->get();
@@ -27,6 +27,10 @@ class PaymentController extends Controller
         $suppliers = Supplier::where('company_id', $companyId)
             ->orderBy('name')
             ->get();
+        $cashboxes = Cashbox::where('company_id', $companyId)->where('is_active', true)->orderBy('id')->get();
+        if ($cashboxes->isEmpty()) {
+            $cashboxes = collect([Cashbox::create(['company_id' => $companyId, 'name' => 'الصندوق الرئيسي', 'balance' => 0, 'is_active' => true])]);
+        }
 
         $year = now()->year;
         $nextPaymentNumbers = $suppliers->mapWithKeys(fn ($party) => [
@@ -41,6 +45,7 @@ class PaymentController extends Controller
             'payments' => $payments,
             'nextPaymentNo' => "PAY-{$year}-000001",
             'nextPaymentNumbers' => $nextPaymentNumbers,
+            'cashboxes' => $cashboxes,
         ]);
     }
 
@@ -52,13 +57,15 @@ class PaymentController extends Controller
             'payment_date' => ['required', 'date'],
             'party_type' => ['required', 'in:customer,supplier'],
             'party_id' => ['required', 'integer'],
+            'cashbox_id' => ['required', 'integer'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'notes' => ['nullable', 'string'],
         ]);
 
         $party = $this->findParty($request->party_type, $request->party_id, $companyId);
+        $selectedCashbox = $this->findCashbox((int) $request->cashbox_id, $companyId);
 
-        DB::transaction(function () use ($companyId, $party, $request) {
+        DB::transaction(function () use ($companyId, $party, $request, $selectedCashbox) {
             $party::whereKey($party->id)->lockForUpdate()->firstOrFail();
             Payment::where('company_id', $companyId)
                 ->where($request->party_type.'_id', $party->id)
@@ -67,6 +74,7 @@ class PaymentController extends Controller
 
             $payment = Payment::create([
                 'company_id' => $companyId,
+                'cashbox_id' => $selectedCashbox->id,
                 'payment_no' => $this->nextPaymentNumber($companyId, $request->party_type, $party->id, (int) date('Y', strtotime($request->payment_date))),
                 'payment_date' => $request->payment_date,
                 'supplier_id' => $request->party_type === 'supplier' ? $party->id : null,
@@ -75,12 +83,13 @@ class PaymentController extends Controller
                 'notes' => $request->notes,
             ]);
 
-            $cashbox = Cashbox::firstOrCreate(['company_id' => $companyId], ['balance' => 0]);
+            $cashbox = Cashbox::whereKey($selectedCashbox->id)->lockForUpdate()->firstOrFail();
             $cashbox->decrement('balance', $request->amount);
             $cashbox->refresh();
 
             CashboxLog::create([
                 'company_id' => $companyId,
+                'cashbox_id' => $cashbox->id,
                 'type' => 'صرف',
                 'reference_no' => $payment->payment_no,
                 'person_name' => $party->name,
@@ -104,11 +113,15 @@ class PaymentController extends Controller
             ->orderBy('name')
             ->get();
         $customers = Customer::where('company_id', $companyId)->orderBy('name')->get();
+        $cashboxes = Cashbox::where('company_id', $companyId)
+            ->where(fn ($query) => $query->where('is_active', true)->orWhereKey($payment->cashbox_id))
+            ->orderBy('id')->get();
 
         return view('payments.edit', [
             'payment' => $payment,
             'suppliers' => $suppliers,
             'customers' => $customers,
+            'cashboxes' => $cashboxes,
         ]);
     }
 
@@ -122,19 +135,24 @@ class PaymentController extends Controller
             'payment_date' => ['required', 'date'],
             'party_type' => ['required', 'in:customer,supplier'],
             'party_id' => ['required', 'integer'],
+            'cashbox_id' => ['required', 'integer'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'notes' => ['nullable', 'string'],
         ]);
 
         $party = $this->findParty($request->party_type, $request->party_id, $companyId);
+        $selectedCashbox = $this->findCashbox((int) $request->cashbox_id, $companyId);
 
-        $oldAmount = $payment->amount;
+        DB::transaction(function () use ($companyId, $party, $request, $payment, $selectedCashbox) {
+        $oldAmount = (float) $payment->amount;
+        $oldCashboxId = $payment->cashbox_id ?: Cashbox::where('company_id', $companyId)->orderBy('id')->value('id');
 
         $partyOrYearChanged = $payment->party_type !== $request->party_type
             || (int) $payment->{$request->party_type.'_id'} !== (int) $party->id
             || (int) date('Y', strtotime($payment->payment_date)) !== (int) date('Y', strtotime($request->payment_date));
 
         $payment->update([
+            'cashbox_id' => $selectedCashbox->id,
             'payment_date' => $request->payment_date,
             'supplier_id' => $request->party_type === 'supplier' ? $party->id : null,
             'customer_id' => $request->party_type === 'customer' ? $party->id : null,
@@ -145,18 +163,20 @@ class PaymentController extends Controller
                 : $payment->payment_no,
         ]);
 
-        $cashbox = Cashbox::firstOrCreate(
-            ['company_id' => $companyId],
-            ['balance' => 0]
-        );
-
-        $cashbox->balance =
-            $cashbox->balance + $oldAmount - $request->amount;
-
-        $cashbox->save();
+        $cashboxes = Cashbox::whereIn('id', array_unique([$oldCashboxId, $selectedCashbox->id]))->lockForUpdate()->get()->keyBy('id');
+        $oldCashbox = $cashboxes->get($oldCashboxId);
+        $cashbox = $cashboxes->get($selectedCashbox->id);
+        if ($oldCashboxId === $selectedCashbox->id) {
+            $cashbox->decrement('balance', (float) $request->amount - $oldAmount);
+        } else {
+            $oldCashbox?->increment('balance', $oldAmount);
+            $cashbox->decrement('balance', (float) $request->amount);
+        }
+        $cashbox->refresh();
 
         CashboxLog::create([
             'company_id' => $companyId,
+            'cashbox_id' => $cashbox->id,
             'type' => 'تعديل صرف',
             'reference_no' => $payment->payment_no,
             'person_name' => $party->name,
@@ -164,6 +184,7 @@ class PaymentController extends Controller
             'balance_after' => $cashbox->balance,
             'notes' => 'تم تعديل سند صرف',
         ]);
+        });
 
         return redirect('/payments')
             ->with('success', __('تم تعديل سند الصرف بنجاح'));
@@ -175,25 +196,25 @@ class PaymentController extends Controller
 
         $this->ensurePaymentBelongsToCompany($payment);
 
-        $cashbox = Cashbox::firstOrCreate(
-            ['company_id' => $companyId],
-            ['balance' => 0]
-        );
-
-        $cashbox->balance += $payment->amount;
-        $cashbox->save();
+        DB::transaction(function () use ($companyId, $payment) {
+        $cashbox = Cashbox::whereKey($payment->cashbox_id)
+            ->where('company_id', $companyId)->lockForUpdate()->first();
+        $cashbox?->increment('balance', $payment->amount);
+        $cashbox?->refresh();
 
         CashboxLog::create([
             'company_id' => $companyId,
+            'cashbox_id' => $cashbox?->id,
             'type' => 'حذف صرف',
             'reference_no' => $payment->payment_no,
             'person_name' => $payment->party?->name ?? '-',
             'amount' => $payment->amount,
-            'balance_after' => $cashbox->balance,
+            'balance_after' => $cashbox?->balance ?? 0,
             'notes' => 'تم حذف سند صرف',
         ]);
 
         $payment->delete();
+        });
 
         return redirect('/payments')
             ->with('success', __('تم حذف سند الصرف'));
@@ -210,21 +231,21 @@ class PaymentController extends Controller
         return view('payments.print', compact('payment'));
     }
 
-    public function pdf($id)
+    public function pdf($id, DocumentExportService $exports)
     {
         $payment = $this->findCompanyPayment($id);
 
-        return Pdf::loadView('payments.print', compact('payment'))
-            ->setPaper('a4')
-            ->download('payment-'.$payment->payment_no.'.pdf');
+        return $exports->pdf('payments.print', compact('payment'), 'payment-'.$payment->payment_no.'.pdf', 'landscape');
     }
 
     public function excel($id)
     {
         $payment = $this->findCompanyPayment($id);
         $export = new ArrayExport(
-            [__('messages.reference'), __('messages.date'), __('messages.supplier'), __('messages.amount'), __('messages.notes')],
+            [__('messages.reference'), __('messages.date'), __('messages.party'), __('messages.amount'), __('messages.notes')],
             [[$payment->payment_no, $payment->payment_date, $payment->party?->name, $payment->amount, $payment->notes]],
+            'سند صرف',
+            $payment->company_id,
         );
 
         return Excel::download($export, 'payment-'.$payment->payment_no.'.xlsx');
@@ -249,6 +270,11 @@ class PaymentController extends Controller
     {
         $model = $type === 'customer' ? Customer::class : Supplier::class;
         return $model::whereKey($id)->where('company_id', $companyId)->firstOrFail();
+    }
+
+    private function findCashbox(int $id, int $companyId): Cashbox
+    {
+        return Cashbox::whereKey($id)->where('company_id', $companyId)->where('is_active', true)->firstOrFail();
     }
 
     private function nextPaymentNumber(int $companyId, string $partyType, int $partyId, int $year): string

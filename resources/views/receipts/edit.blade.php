@@ -43,6 +43,15 @@
 
 <br><br>
 
+<label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('الصندوق') }}</label>
+<select name="cashbox_id" required>
+@foreach($cashboxes as $cashbox)
+<option value="{{ $cashbox->id }}" @selected((int) old('cashbox_id', $receipt->cashbox_id ?: $cashboxes->first()?->id) === $cashbox->id)>{{ $cashbox->name }} — {{ number_format($cashbox->balance, 2) }}</option>
+@endforeach
+</select>
+
+<br><br>
+
 <label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('المبلغ') }}</label>
 <input type="number" name="amount" step="0.01" value="{{ $receipt->amount }}" required>
 

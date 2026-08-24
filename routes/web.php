@@ -18,6 +18,8 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ExternalInvoiceController;
+use App\Http\Controllers\FeatureModuleController;
+use App\Http\Controllers\VoucherAttachmentController;
 
 
 /*
@@ -189,6 +191,22 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'subscription'])->group(function () {
 
+    foreach (['inventory', 'sales', 'purchases', 'payroll', 'projects', 'installments'] as $module) {
+        Route::middleware(['role:admin,accountant', 'feature:'.$module])->prefix('modules/'.$module)->group(function () use ($module) {
+            Route::get('/', [FeatureModuleController::class, 'index'])->defaults('module', $module)->name('modules.'.$module);
+            Route::post('/', [FeatureModuleController::class, 'store'])->defaults('module', $module);
+            Route::put('/{record}', [FeatureModuleController::class, 'update'])->defaults('module', $module);
+            Route::delete('/{record}', [FeatureModuleController::class, 'destroy'])->defaults('module', $module);
+        });
+    }
+
+    Route::middleware(['role:admin,accountant', 'feature:voucher_attachments'])->prefix('voucher-attachments')->group(function () {
+        Route::get('/', [VoucherAttachmentController::class, 'index'])->name('voucher-attachments.index');
+        Route::post('/', [VoucherAttachmentController::class, 'store']);
+        Route::get('/{attachment}/download', [VoucherAttachmentController::class, 'download'])->name('voucher-attachments.download');
+        Route::delete('/{attachment}', [VoucherAttachmentController::class, 'destroy']);
+    });
+
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->name('search.suggestions');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -285,6 +303,12 @@ Route::middleware(['auth', 'subscription'])->group(function () {
             '/cashbox',
             [CashboxController::class, 'index']
         );
+
+        Route::middleware('feature:multiple_cashboxes')->group(function () {
+            Route::post('/cashbox', [CashboxController::class, 'store']);
+            Route::put('/cashbox/{cashbox}', [CashboxController::class, 'update']);
+            Route::delete('/cashbox/{cashbox}', [CashboxController::class, 'destroy']);
+        });
 
 
         /*

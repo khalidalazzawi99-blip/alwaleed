@@ -8,6 +8,7 @@ class Payment extends Model
 {
     protected $fillable = [
         'company_id',
+        'cashbox_id',
         'payment_no',
         'payment_date',
         'supplier_id',
@@ -19,6 +20,11 @@ class Payment extends Model
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function cashbox()
+    {
+        return $this->belongsTo(Cashbox::class);
     }
 
     public function supplier()

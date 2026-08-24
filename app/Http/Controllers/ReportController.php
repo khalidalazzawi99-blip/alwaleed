@@ -9,7 +9,7 @@ use App\Models\Receipt;
 use App\Models\Payment;
 use App\Models\Cashbox;
 use App\Exports\ArrayExport;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\DocumentExportService;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ReportController extends Controller
@@ -69,11 +69,6 @@ class ReportController extends Controller
             ];
         }
 
-        $cashbox = Cashbox::firstOrCreate(
-            ['company_id' => $companyId],
-            ['balance' => 0]
-        );
-
         return view('reports.index', [
             'cashMovement' => $cashMovement,
 
@@ -93,7 +88,7 @@ class ReportController extends Controller
 
             'totalPayments' => $payments->sum('amount'),
 
-            'balance' => $cashbox->balance,
+            'balance' => Cashbox::where('company_id', $companyId)->sum('balance'),
 
             'from' => $from,
 
@@ -156,11 +151,6 @@ class ReportController extends Controller
             ];
         }
 
-        $cashbox = Cashbox::firstOrCreate(
-            ['company_id' => $companyId],
-            ['balance' => 0]
-        );
-
         return view('reports.print', [
             'cashMovement' => $cashMovement,
 
@@ -172,7 +162,7 @@ class ReportController extends Controller
 
             'totalPayments' => $payments->sum('amount'),
 
-            'balance' => $cashbox->balance,
+            'balance' => Cashbox::where('company_id', $companyId)->sum('balance'),
 
             'from' => $from,
 
@@ -180,11 +170,9 @@ class ReportController extends Controller
         ]);
     }
 
-    public function pdf(Request $request)
+    public function pdf(Request $request, DocumentExportService $exports)
     {
-        return Pdf::loadView('reports.print', $this->exportData($request))
-            ->setPaper('a4')
-            ->download('financial-report-'.now()->format('Ymd').'.pdf');
+        return $exports->pdf('reports.print', $this->exportData($request), 'financial-report-'.now()->format('Ymd').'.pdf');
     }
 
     public function excel(Request $request)
@@ -214,7 +202,7 @@ class ReportController extends Controller
         return Excel::download(new ArrayExport([
             __('messages.date'), __('messages.movement_type'), __('messages.reference'),
             __('messages.name'), __('messages.received'), __('messages.paid'), __('messages.notes'),
-        ], $rows), 'financial-report-'.now()->format('Ymd').'.xlsx');
+        ], $rows, 'التقرير المالي', auth()->user()->company_id), 'financial-report-'.now()->format('Ymd').'.xlsx');
     }
 
     private function exportData(Request $request): array
@@ -246,7 +234,7 @@ class ReportController extends Controller
             'payments' => $payments,
             'totalReceipts' => $receipts->sum('amount'),
             'totalPayments' => $payments->sum('amount'),
-            'balance' => Cashbox::firstOrCreate(['company_id' => $companyId], ['balance' => 0])->balance,
+            'balance' => Cashbox::where('company_id', $companyId)->sum('balance'),
             'from' => $from,
             'to' => $to,
         ];

@@ -44,6 +44,15 @@
 
 <br><br>
 
+<label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('الصندوق') }}</label>
+<select name="cashbox_id" required>
+@foreach($cashboxes as $cashbox)
+<option value="{{ $cashbox->id }}" @selected((int) old('cashbox_id', request('cashbox_id', $cashboxes->first()?->id)) === $cashbox->id)>{{ $cashbox->name }} — {{ number_format($cashbox->balance, 2) }}</option>
+@endforeach
+</select>
+
+<br><br>
+
 <label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('المبلغ') }}</label>
 <input type="number" name="amount" step="0.01" placeholder="250000" required>
 
@@ -74,6 +83,7 @@
 <th>{{ __('رقم الوصل') }}</th>
 <th>{{ __('التاريخ') }}</th>
 <th>{{ __('messages.party') }}</th>
+<th>{{ __('الصندوق') }}</th>
 <th>{{ __('المبلغ') }}</th>
 <th>{{ __('الملاحظات') }}</th>
 <th>{{ __('طباعة') }}</th>
@@ -86,6 +96,7 @@
 <td>{{ $payment->payment_no }}</td>
 <td>{{ $payment->payment_date }}</td>
 <td>{{ $payment->party?->name ?? '-' }} <small>({{ $payment->party_type === 'customer' ? __('messages.customer') : __('messages.supplier') }})</small></td>
+<td>{{ $payment->cashbox?->name ?? __('الصندوق الرئيسي') }}</td>
 <td style="color:#DC2626;font-weight:800">{{ number_format($payment->amount,2) }}</td>
 <td>{{ $payment->notes }}</td>
 <td>

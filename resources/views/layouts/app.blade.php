@@ -1612,6 +1612,24 @@ html[dir="ltr"] .menu-section::after{
                 <svg class="icon" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg> {{ __('messages.reports') }}
             </a>
 
+            @php($activeCompany = auth()->user()->company)
+            @if($activeCompany)
+                @foreach(['inventory','sales','purchases','payroll','projects','installments'] as $featureKey)
+                    @if($activeCompany->hasFeature($featureKey))
+                        <a href="/modules/{{ $featureKey }}" class="{{ request()->is('modules/'.$featureKey.'*') ? 'active' : '' }}">
+                            <span style="font-size:18px">{{ config('features.modules.'.$featureKey.'.icon') }}</span>
+                            {{ __(config('features.modules.'.$featureKey.'.name')) }}
+                        </a>
+                    @endif
+                @endforeach
+                @if($activeCompany->hasFeature('voucher_attachments'))
+                    <a href="/voucher-attachments" class="{{ request()->is('voucher-attachments*') ? 'active' : '' }}">
+                        <span style="font-size:18px">{{ config('features.modules.voucher_attachments.icon') }}</span>
+                        {{ __(config('features.modules.voucher_attachments.name')) }}
+                    </a>
+                @endif
+            @endif
+
         @endif
 
 

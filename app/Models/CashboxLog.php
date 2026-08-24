@@ -8,6 +8,7 @@ class CashboxLog extends Model
 {
     protected $fillable = [
         'company_id',
+        'cashbox_id',
         'type',
         'reference_no',
         'person_name',
@@ -19,5 +20,10 @@ class CashboxLog extends Model
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function cashbox()
+    {
+        return $this->belongsTo(Cashbox::class);
     }
 }
