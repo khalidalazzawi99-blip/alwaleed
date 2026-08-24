@@ -432,7 +432,7 @@
             </div>
 
             <p class="stat-small">
-                {{ __('messages.iraqi_dinar') }}
+                {{ $companyCurrency }}
             </p>
 
         </div>
