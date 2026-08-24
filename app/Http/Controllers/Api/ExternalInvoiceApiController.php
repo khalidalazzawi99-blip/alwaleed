@@ -24,9 +24,14 @@ class ExternalInvoiceApiController extends Controller
             'company_id' => ['prohibited'],
             'external_invoice_id' => ['required', 'string', 'max:191'],
             'invoice_no' => ['required', 'string', 'max:191'],
+            'invoice_name' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'order_no' => ['required', 'string', 'max:191'],
             'external_customer_id' => ['required', 'string', 'max:191'],
             'invoice_date' => ['required', 'date'],
+            'currency' => ['required', 'string', 'size:3'],
             'amount' => ['required', 'decimal:0,2', 'gt:0'],
+            'status' => ['required', 'in:active,cancelled'],
         ]);
 
         if ($validator->fails()) {
@@ -35,6 +40,14 @@ class ExternalInvoiceApiController extends Controller
         }
 
         $data = $validator->validated();
+        $data['currency'] = strtoupper($data['currency']);
+        $companyCurrency = strtoupper(Setting::where('company_id', $company->id)->value('currency') ?: 'IQD');
+        if ($data['currency'] !== $companyCurrency) {
+            return response()->json([
+                'message' => 'Currency is not supported for this company.',
+                'errors' => ['currency' => ["The supported currency is {$companyCurrency}."]],
+            ], 422);
+        }
         $customer = Customer::query()
             ->where('company_id', $company->id)
             ->where('external_customer_id', $data['external_customer_id'])
@@ -53,9 +66,12 @@ class ExternalInvoiceApiController extends Controller
                         'customer_id' => $customer->id,
                         'external_customer_id' => $data['external_customer_id'],
                         'invoice_no' => $data['invoice_no'],
+                        'invoice_name' => $data['invoice_name'] ?? $data['description'] ?? null,
+                        'order_no' => $data['order_no'],
                         'invoice_date' => $data['invoice_date'],
                         'amount' => $data['amount'],
-                        'currency' => Setting::where('company_id', $company->id)->value('currency') ?: 'IQD',
+                        'currency' => $data['currency'],
+                        'status' => $data['status'],
                     ]
                 );
             });
@@ -66,13 +82,27 @@ class ExternalInvoiceApiController extends Controller
 
             return response()->json([
                 'message' => $invoice->wasRecentlyCreated ? 'Invoice received.' : 'Invoice replayed and safely updated.',
-                'data' => $invoice->fresh()->only(['id', 'external_invoice_id', 'invoice_no', 'invoice_date', 'amount', 'customer_id']),
+                'data' => $invoice->fresh()->only(['id', 'external_invoice_id', 'invoice_no', 'invoice_name', 'order_no', 'invoice_date', 'currency', 'amount', 'status', 'customer_id']),
             ], $invoice->wasRecentlyCreated ? 201 : 200);
         } catch (Throwable $exception) {
             Log::error('External invoice receive failed.', ['company_id' => $company->id, 'exception' => $exception::class]);
             $this->record($company->id, $request, 'database_error', 500, 'Invoice could not be stored.');
             return response()->json(['message' => 'Invoice could not be stored.'], 500);
         }
+    }
+
+    public function cancel(Request $request, string $externalInvoiceId)
+    {
+        $company = $request->attributes->get('company');
+        $invoice = ExternalInvoice::where('company_id', $company->id)
+            ->where('external_invoice_id', $externalInvoiceId)->firstOrFail();
+        $invoice->update(['status' => 'cancelled']);
+        $this->record($company->id, new Request([
+            'external_invoice_id' => $invoice->external_invoice_id,
+            'invoice_no' => $invoice->invoice_no,
+        ]), 'invoice_cancelled', 200);
+
+        return response()->json(['message' => 'Invoice cancelled.', 'data' => $invoice->fresh()->only(['external_invoice_id', 'invoice_no', 'status'])]);
     }
 
     public function index(Request $request)

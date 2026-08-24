@@ -71,7 +71,7 @@ class ExternalInvoiceController extends Controller
             CompanyApiToken::where('company_id', $companyId)->whereNull('revoked_at')->update(['revoked_at' => now()]);
             CompanyApiToken::create([
                 'company_id' => $companyId, 'name' => $data['name'], 'token_hash' => hash('sha256', $plain),
-                'token_prefix' => substr($plain, 0, 14), 'scopes' => ['invoices:read', 'invoices:write', 'balances:read'],
+                'token_prefix' => substr($plain, 0, 14), 'scopes' => ['invoices:read', 'invoices:write', 'balances:read', 'customers:read', 'banks:read'],
                 'expires_at' => $data['expires_at'] ?? null,
             ]);
             ExternalInvoiceIntegration::updateOrCreate(

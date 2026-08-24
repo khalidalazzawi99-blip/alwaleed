@@ -6,6 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model
 {
+    protected static function booted(): void
+    {
+        static::created(function (Customer $customer): void {
+            if (!$customer->external_customer_id) {
+                $candidate = 'C-'.$customer->id;
+                if (static::where('company_id', $customer->company_id)->where('external_customer_id', $candidate)->exists()) {
+                    $candidate .= '-'.$customer->company_id;
+                }
+                $customer->forceFill(['external_customer_id' => $candidate])->saveQuietly();
+            }
+        });
+    }
+
     protected $fillable = [
         'company_id',
         'external_customer_id',

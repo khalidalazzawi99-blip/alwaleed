@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Models\CompanyApiToken;
+use App\Models\Cashbox;
 use App\Models\Customer;
 use App\Models\ExternalInvoice;
 use App\Models\ExternalInvoiceIntegration;
 use App\Models\Receipt;
 use App\Models\Payment;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\CustomerBalanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -46,6 +48,39 @@ class ExternalInvoiceIntegrationTest extends TestCase
         $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload(['amount' => 1500000]))->assertOk();
         $this->assertSame(1, ExternalInvoice::where('company_id', $company->id)->where('external_invoice_id', '4812')->count());
         $this->assertDatabaseHas('external_invoices', ['company_id' => $company->id, 'external_invoice_id' => '4812', 'amount' => 1500000]);
+    }
+
+    public function test_customer_and_bank_feeds_are_scoped_paginated_and_include_balances(): void
+    {
+        $company = $this->company();
+        Setting::create(['company_id' => $company->id, 'company_name' => 'Test', 'currency' => 'USD']);
+        $customer = $this->customer($company, 'C-155');
+        $this->invoice($company, $customer, '1', 1000);
+        $this->receipt($company, $customer, 250);
+        Cashbox::create(['company_id' => $company->id, 'name' => 'Main Bank', 'balance' => 50000, 'is_active' => true]);
+        [$plain] = $this->credential($company);
+
+        $this->withToken($plain)->getJson('/api/v1/external-customers?per_page=25')
+            ->assertOk()->assertJsonPath('customers.0.external_customer_id', 'C-155')
+            ->assertJsonPath('customers.0.balance', 750)->assertJsonPath('customers.0.currency', 'USD')
+            ->assertJsonPath('pagination.total', 1);
+        $this->withToken($plain)->getJson('/api/v1/external-banks')
+            ->assertOk()->assertJsonPath('banks.0.name', 'Main Bank')
+            ->assertJsonPath('banks.0.balance', 50000)->assertJsonPath('pagination.total', 1);
+    }
+
+    public function test_cancelled_invoice_no_longer_affects_customer_balance(): void
+    {
+        $company = $this->company();
+        Setting::create(['company_id' => $company->id, 'company_name' => 'Test', 'currency' => 'IQD']);
+        $customer = $this->customer($company, 'C-155');
+        [$plain] = $this->credential($company);
+        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload())->assertCreated();
+        $this->assertSame(1250000.0, app(CustomerBalanceService::class)->calculate($customer)['outstandingBalance']);
+
+        $this->withToken($plain)->postJson('/api/v1/external-invoices/4812/cancel')
+            ->assertOk()->assertJsonPath('data.status', 'cancelled');
+        $this->assertSame(0.0, app(CustomerBalanceService::class)->calculate($customer)['outstandingBalance']);
     }
 
     public function test_unknown_external_customer_is_rejected_without_invoice(): void
@@ -165,13 +200,13 @@ class ExternalInvoiceIntegrationTest extends TestCase
     {
         ExternalInvoiceIntegration::create(['company_id' => $company->id, 'provider' => 'default', 'enabled' => $enabled]);
         $plain = 'aw_test_'.Str::random(40);
-        $token = CompanyApiToken::create(['company_id' => $company->id, 'name' => 'Test', 'token_hash' => hash('sha256', $plain), 'token_prefix' => substr($plain, 0, 14), 'scopes' => ['invoices:write']]);
+        $token = CompanyApiToken::create(['company_id' => $company->id, 'name' => 'Test', 'token_hash' => hash('sha256', $plain), 'token_prefix' => substr($plain, 0, 14), 'scopes' => ['invoices:write', 'customers:read', 'banks:read']]);
         return [$plain, $token];
     }
 
     private function payload(array $overrides = []): array
     {
-        return array_merge(['external_invoice_id' => '4812', 'invoice_no' => 'INV-2026-4812', 'external_customer_id' => 'C-155', 'invoice_date' => '2026-08-19', 'amount' => 1250000], $overrides);
+        return array_merge(['external_invoice_id' => '4812', 'invoice_no' => 'INV-2026-4812', 'invoice_name' => 'Sales Invoice INV-2026-4812', 'order_no' => 'ORD-20260819-001', 'external_customer_id' => 'C-155', 'invoice_date' => '2026-08-19', 'currency' => 'IQD', 'amount' => 1250000, 'status' => 'active'], $overrides);
     }
 
     private function invoice(Company $company, Customer $customer, string $externalId, float $amount): ExternalInvoice

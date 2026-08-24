@@ -112,6 +112,7 @@ class CustomerController extends Controller
             ->get();
 
         $externalInvoices = ExternalInvoice::where('company_id', $customer->company_id)->where('customer_id', $customer->id)
+            ->where('status', '!=', 'cancelled')
             ->when($filters['from'] ?? null, fn ($query, $date) => $query->whereDate('invoice_date', '>=', $date))
             ->when($filters['to'] ?? null, fn ($query, $date) => $query->whereDate('invoice_date', '<=', $date))
             ->orderBy('invoice_date')->orderBy('id')->get();
