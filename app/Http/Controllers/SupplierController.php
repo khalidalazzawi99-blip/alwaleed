@@ -61,6 +61,27 @@ class SupplierController extends Controller
         return view('suppliers.print', $this->statementData($request, $supplier));
     }
 
+    public function edit(Supplier $supplier)
+    {
+        $this->ensureSupplierBelongsToCompany($supplier);
+
+        return view('suppliers.edit', compact('supplier'));
+    }
+
+    public function update(Request $request, Supplier $supplier)
+    {
+        $this->ensureSupplierBelongsToCompany($supplier);
+        $supplier->update($request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'company_name' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
+        ]));
+
+        return redirect('/suppliers')->with('success', __('تم تعديل بيانات المورد بنجاح'));
+    }
+
     public function pdf(Request $request, Supplier $supplier, DocumentExportService $exports)
     {
         $this->ensureSupplierBelongsToCompany($supplier);

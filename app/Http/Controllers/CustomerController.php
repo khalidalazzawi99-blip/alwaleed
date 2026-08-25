@@ -67,6 +67,27 @@ class CustomerController extends Controller
             ->with('success', __('تم حذف الزبون بنجاح'));
     }
 
+    public function edit(Customer $customer)
+    {
+        $this->ensureCustomerBelongsToCompany($customer);
+
+        return view('customers.edit', compact('customer'));
+    }
+
+    public function update(Request $request, Customer $customer)
+    {
+        $this->ensureCustomerBelongsToCompany($customer);
+        $customer->update($request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'company_name' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
+        ]));
+
+        return redirect('/customers')->with('success', __('تم تعديل بيانات الزبون بنجاح'));
+    }
+
     public function print(Request $request, Customer $customer)
     {
         $this->ensureCustomerBelongsToCompany($customer);

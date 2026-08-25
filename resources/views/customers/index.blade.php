@@ -75,7 +75,9 @@
             <td>{{ $customer->address }}</td>
 
             <td>
-                <form method="POST" action="/customers/{{ $customer->id }}">
+                <div style="display:flex;gap:8px;align-items:center">
+                <a href="/customers/{{ $customer->id }}/edit" class="btn">{{ __('تعديل') }}</a>
+                <form method="POST" action="/customers/{{ $customer->id }}" style="margin:0">
                     @csrf
                     @method('DELETE')
 
@@ -83,6 +85,7 @@
                         {{ __('حذف') }}
                     </button>
                 </form>
+                </div>
             </td>
         </tr>
 

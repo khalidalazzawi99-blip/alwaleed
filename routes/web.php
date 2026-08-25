@@ -435,6 +435,9 @@ Route::middleware(['auth', 'subscription'])->group(function () {
             [CustomerController::class, 'store']
         );
 
+        Route::get('/customers/{customer}/edit', [CustomerController::class, 'edit']);
+        Route::put('/customers/{customer}', [CustomerController::class, 'update']);
+
         Route::get(
             '/customers/{customer}',
             [CustomerController::class, 'show']
@@ -469,6 +472,9 @@ Route::middleware(['auth', 'subscription'])->group(function () {
             '/suppliers',
             [SupplierController::class, 'store']
         );
+
+        Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit']);
+        Route::put('/suppliers/{supplier}', [SupplierController::class, 'update']);
 
         Route::get(
             '/suppliers/{supplier}',

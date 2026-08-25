@@ -44,6 +44,7 @@
                 <th>{{ __('الهاتف') }}</th>
                 <th>{{ __('الشركة') }}</th>
                 <th>{{ __('العنوان') }}</th>
+                <th>{{ __('إجراء') }}</th>
             </tr>
         </thead>
 
@@ -60,6 +61,7 @@
                 <td>{{ $supplier->phone }}</td>
                 <td>{{ $supplier->company_name }}</td>
                 <td>{{ $supplier->address }}</td>
+                <td><a href="/suppliers/{{ $supplier->id }}/edit" class="btn">{{ __('تعديل') }}</a></td>
             </tr>
             @endforeach
         </tbody>
