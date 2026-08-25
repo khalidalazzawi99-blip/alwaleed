@@ -3,25 +3,25 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Customer extends Model
 {
     protected static function booted(): void
     {
-        static::created(function (Customer $customer): void {
-            if (!$customer->external_customer_id) {
-                $candidate = 'C-'.$customer->id;
-                if (static::where('company_id', $customer->company_id)->where('external_customer_id', $candidate)->exists()) {
-                    $candidate .= '-'.$customer->company_id;
-                }
-                $customer->forceFill(['external_customer_id' => $candidate])->saveQuietly();
+        static::creating(function (Customer $customer): void {
+            $customer->integration_id ??= 'C-'.Str::ulid();
+        });
+
+        static::updating(function (Customer $customer): void {
+            if ($customer->isDirty('integration_id') && $customer->getOriginal('integration_id')) {
+                $customer->integration_id = $customer->getOriginal('integration_id');
             }
         });
     }
 
     protected $fillable = [
         'company_id',
-        'external_customer_id',
         'name',
         'phone',
         'company_name',

@@ -24,11 +24,11 @@ class ExternalInvoiceIntegrationTest extends TestCase
     public function test_valid_invoice_is_received_and_company_comes_from_api_key(): void
     {
         $company = $this->company();
-        $customer = $this->customer($company, 'C-155');
+        $customer = $this->customer($company);
         [$plain] = $this->credential($company);
 
-        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload())
-            ->assertCreated()->assertJsonPath('data.customer_id', $customer->id);
+        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload(['customer_id' => $customer->integration_id]))
+            ->assertCreated()->assertJsonPath('data.customer_id', $customer->integration_id);
 
         $this->assertDatabaseHas('external_invoices', [
             'company_id' => $company->id, 'customer_id' => $customer->id,
@@ -43,9 +43,9 @@ class ExternalInvoiceIntegrationTest extends TestCase
 
     public function test_duplicate_invoice_is_updated_not_duplicated(): void
     {
-        $company = $this->company(); $this->customer($company, 'C-155'); [$plain] = $this->credential($company);
-        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload())->assertCreated();
-        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload(['amount' => 1500000]))->assertOk();
+        $company = $this->company(); $customer = $this->customer($company); [$plain] = $this->credential($company);
+        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload(['customer_id' => $customer->integration_id]))->assertCreated();
+        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload(['customer_id' => $customer->integration_id, 'amount' => 1500000]))->assertOk();
         $this->assertSame(1, ExternalInvoice::where('company_id', $company->id)->where('external_invoice_id', '4812')->count());
         $this->assertDatabaseHas('external_invoices', ['company_id' => $company->id, 'external_invoice_id' => '4812', 'amount' => 1500000]);
     }
@@ -54,53 +54,55 @@ class ExternalInvoiceIntegrationTest extends TestCase
     {
         $company = $this->company();
         Setting::create(['company_id' => $company->id, 'company_name' => 'Test', 'currency' => 'USD']);
-        $customer = $this->customer($company, 'C-155');
+        $customer = $this->customer($company);
         $this->invoice($company, $customer, '1', 1000);
         $this->receipt($company, $customer, 250);
         Cashbox::create(['company_id' => $company->id, 'name' => 'Main Bank', 'balance' => 50000, 'is_active' => true]);
         [$plain] = $this->credential($company);
 
         $this->withToken($plain)->getJson('/api/v1/external-customers?per_page=25')
-            ->assertOk()->assertJsonPath('customers.0.external_customer_id', 'C-155')
-            ->assertJsonPath('customers.0.balance', 750)->assertJsonPath('customers.0.currency', 'USD')
-            ->assertJsonPath('pagination.total', 1);
+            ->assertOk()->assertJsonPath('data.0.customer_id', $customer->integration_id)
+            ->assertJsonPath('data.0.balance', 750)->assertJsonPath('data.0.currency', 'USD')
+            ->assertJsonPath('meta.total', 1)->assertJsonStructure(['data' => [['updated_at']], 'meta']);
         $this->withToken($plain)->getJson('/api/v1/external-banks')
-            ->assertOk()->assertJsonPath('banks.0.name', 'Main Bank')
-            ->assertJsonPath('banks.0.balance', 50000)->assertJsonPath('pagination.total', 1);
+            ->assertOk()->assertJsonPath('data.0.name', 'Main Bank')
+            ->assertJsonPath('data.0.balance', 50000)->assertJsonPath('meta.total', 1)
+            ->assertJsonStructure(['data' => [['bank_id', 'updated_at']], 'meta']);
     }
 
     public function test_cancelled_invoice_no_longer_affects_customer_balance(): void
     {
         $company = $this->company();
         Setting::create(['company_id' => $company->id, 'company_name' => 'Test', 'currency' => 'IQD']);
-        $customer = $this->customer($company, 'C-155');
+        $customer = $this->customer($company);
         [$plain] = $this->credential($company);
-        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload())->assertCreated();
+        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload(['customer_id' => $customer->integration_id]))->assertCreated();
         $this->assertSame(1250000.0, app(CustomerBalanceService::class)->calculate($customer)['outstandingBalance']);
 
         $this->withToken($plain)->postJson('/api/v1/external-invoices/4812/cancel')
             ->assertOk()->assertJsonPath('data.status', 'cancelled');
+        $this->withToken($plain)->postJson('/api/v1/external-invoices/4812/cancel')->assertOk();
         $this->assertSame(0.0, app(CustomerBalanceService::class)->calculate($customer)['outstandingBalance']);
     }
 
     public function test_unknown_external_customer_is_rejected_without_invoice(): void
     {
         $company = $this->company(); [$plain] = $this->credential($company);
-        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload())->assertNotFound();
+        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload(['customer_id' => 'C-01KZZZZZZZZZZZZZZZZZZZZZZZ']))->assertNotFound();
         $this->assertDatabaseCount('external_invoices', 0);
     }
 
     public function test_company_a_key_cannot_create_invoice_for_company_b_customer(): void
     {
         $companyA = $this->company('A'); $companyB = $this->company('B');
-        $this->customer($companyB, 'C-155'); [$plainA] = $this->credential($companyA);
-        $this->withToken($plainA)->postJson('/api/v1/external-invoices', $this->payload())->assertNotFound();
+        $customerB = $this->customer($companyB); [$plainA] = $this->credential($companyA);
+        $this->withToken($plainA)->postJson('/api/v1/external-invoices', $this->payload(['customer_id' => $customerB->integration_id]))->assertNotFound();
         $this->assertDatabaseCount('external_invoices', 0);
     }
 
     public function test_customer_invoice_receipt_and_outstanding_totals_are_correct(): void
     {
-        $company = $this->company(); $customer = $this->customer($company, 'C-155');
+        $company = $this->company(); $customer = $this->customer($company);
         $this->invoice($company, $customer, '1', 1000000); $this->invoice($company, $customer, '2', 750000); $this->invoice($company, $customer, '3', 250000);
         $receipt = $this->receipt($company, $customer, 500000);
         $balance = app(CustomerBalanceService::class)->calculate($customer);
@@ -116,7 +118,7 @@ class ExternalInvoiceIntegrationTest extends TestCase
 
     public function test_creating_receipt_reduces_balance_without_editing_invoice(): void
     {
-        $company = $this->company(); $customer = $this->customer($company, 'C-155');
+        $company = $this->company(); $customer = $this->customer($company);
         $invoice = $this->invoice($company, $customer, '1', 3000000)->fresh();
         $fields = ['company_id', 'customer_id', 'external_invoice_id', 'invoice_no', 'invoice_date', 'amount', 'updated_at'];
         $original = collect($fields)->mapWithKeys(fn ($field) => [$field => $invoice->getRawOriginal($field)])->all();
@@ -128,17 +130,17 @@ class ExternalInvoiceIntegrationTest extends TestCase
 
     public function test_disabled_or_revoked_credential_cannot_submit_invoice(): void
     {
-        $company = $this->company(); $this->customer($company, 'C-155'); [$plain, $token] = $this->credential($company, false);
-        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload())->assertForbidden();
+        $company = $this->company(); $customer = $this->customer($company); [$plain, $token] = $this->credential($company, false);
+        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload(['customer_id' => $customer->integration_id]))->assertForbidden();
         ExternalInvoiceIntegration::where('company_id', $company->id)->update(['enabled' => true]);
         $token->update(['revoked_at' => now()]);
-        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload())->assertUnauthorized();
+        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload(['customer_id' => $customer->integration_id]))->assertUnauthorized();
     }
 
     public function test_customer_page_is_company_scoped_and_displays_financial_totals(): void
     {
         $company = $this->company(); $other = $this->company('OTHER');
-        $customer = $this->customer($company, 'C-155'); $otherCustomer = $this->customer($other, 'C-155');
+        $customer = $this->customer($company); $otherCustomer = $this->customer($other);
         $this->invoice($company, $customer, 'A-1', 1000); $this->invoice($other, $otherCustomer, 'B-1', 9000000);
         $this->receipt($company, $customer, 250);
         $user = User::factory()->create(['company_id' => $company->id, 'role' => 'admin']);
@@ -150,7 +152,7 @@ class ExternalInvoiceIntegrationTest extends TestCase
     public function test_customer_with_receipts_only_has_a_positive_balance(): void
     {
         $company = $this->company();
-        $customer = $this->customer($company, 'C-155');
+        $customer = $this->customer($company);
         $this->receipt($company, $customer, 500000);
         Payment::create([
             'company_id' => $company->id,
@@ -170,7 +172,7 @@ class ExternalInvoiceIntegrationTest extends TestCase
     public function test_invoice_appears_in_customer_movement_history_in_date_order(): void
     {
         $company = $this->company();
-        $customer = $this->customer($company, 'C-155');
+        $customer = $this->customer($company);
         $this->invoice($company, $customer, 'INV-MOVEMENT', 1000);
         $this->receipt($company, $customer, 250);
         $user = User::factory()->create(['company_id' => $company->id, 'role' => 'admin']);
@@ -191,27 +193,81 @@ class ExternalInvoiceIntegrationTest extends TestCase
         return Company::create(['name' => 'Company '.$suffix, 'code' => 'C'.Str::upper(Str::random(8)), 'status' => 'active', 'subscription_start' => now(), 'subscription_end' => now()->addYear()]);
     }
 
-    private function customer(Company $company, string $externalId): Customer
+    public function test_customer_integration_id_is_generated_and_immutable(): void
     {
-        return Customer::create(['company_id' => $company->id, 'external_customer_id' => $externalId, 'name' => 'Customer '.$company->id]);
+        $customer = $this->customer($this->company());
+        $original = $customer->integration_id;
+        $this->assertMatchesRegularExpression('/^C-[0-9A-HJKMNP-TV-Z]{26}$/', $original);
+
+        $customer->update(['name' => 'Renamed Customer']);
+        $customer->forceFill(['integration_id' => 'C-CHANGED'])->save();
+        $this->assertSame($original, $customer->fresh()->integration_id);
+    }
+
+    public function test_balance_and_invoice_lists_use_public_customer_id_and_pagination(): void
+    {
+        $company = $this->company(); $customer = $this->customer($company); [$plain] = $this->credential($company);
+        Setting::create(['company_id' => $company->id, 'company_name' => 'Test', 'currency' => 'IQD']);
+        $this->withToken($plain)->postJson('/api/v1/external-invoices', $this->payload(['customer_id' => $customer->integration_id]))->assertCreated();
+        $this->receipt($company, $customer, 250000);
+
+        $this->withToken($plain)->getJson('/api/v1/customers/'.$customer->integration_id.'/balance')
+            ->assertOk()->assertJsonPath('data.customer_id', $customer->integration_id)
+            ->assertJsonPath('data.balance', 1000000);
+        $this->invoice($company, $customer, 'SECOND', 500);
+        $this->withToken($plain)->getJson('/api/v1/external-invoices?per_page=1&page=2')
+            ->assertOk()->assertJsonPath('data.0.customer_id', $customer->integration_id)
+            ->assertJsonPath('meta.current_page', 2)->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.total', 2);
+    }
+
+    public function test_customer_and_bank_incremental_sync_and_pagination_work(): void
+    {
+        $company = $this->company(); [$plain] = $this->credential($company);
+        $customer = $this->customer($company);
+        $bank = Cashbox::create(['company_id' => $company->id, 'name' => 'Main', 'balance' => 1, 'is_active' => true]);
+        $this->customer($company);
+        Cashbox::create(['company_id' => $company->id, 'name' => 'Second', 'balance' => 2, 'is_active' => true]);
+        $future = now()->addMinute()->toIso8601String();
+
+        $this->withToken($plain)->getJson('/api/v1/external-customers?per_page=1&page=1')
+            ->assertJsonPath('data.0.customer_id', $customer->integration_id)->assertJsonPath('meta.last_page', 2);
+        $this->withToken($plain)->getJson('/api/v1/external-banks?per_page=1&page=1')
+            ->assertJsonPath('data.0.bank_id', $bank->integration_id)->assertJsonPath('meta.last_page', 2);
+        $this->withToken($plain)->getJson('/api/v1/external-customers?updated_since='.urlencode($future))->assertJsonCount(0, 'data');
+        $this->withToken($plain)->getJson('/api/v1/external-banks?updated_since='.urlencode($future))->assertJsonCount(0, 'data');
+    }
+
+    public function test_legacy_external_customer_id_field_is_temporarily_accepted(): void
+    {
+        $company = $this->company(); $customer = $this->customer($company); [$plain] = $this->credential($company);
+        $payload = $this->payload(['external_customer_id' => $customer->integration_id]);
+        unset($payload['customer_id']);
+        $this->withToken($plain)->postJson('/api/v1/external-invoices', $payload)
+            ->assertCreated()->assertJsonPath('data.customer_id', $customer->integration_id);
+    }
+
+    private function customer(Company $company): Customer
+    {
+        return Customer::create(['company_id' => $company->id, 'name' => 'Customer '.$company->id]);
     }
 
     private function credential(Company $company, bool $enabled = true): array
     {
         ExternalInvoiceIntegration::create(['company_id' => $company->id, 'provider' => 'default', 'enabled' => $enabled]);
         $plain = 'aw_test_'.Str::random(40);
-        $token = CompanyApiToken::create(['company_id' => $company->id, 'name' => 'Test', 'token_hash' => hash('sha256', $plain), 'token_prefix' => substr($plain, 0, 14), 'scopes' => ['invoices:write', 'customers:read', 'banks:read']]);
+        $token = CompanyApiToken::create(['company_id' => $company->id, 'name' => 'Test', 'token_hash' => hash('sha256', $plain), 'token_prefix' => substr($plain, 0, 14), 'scopes' => ['invoices:read', 'invoices:write', 'customers:read', 'banks:read', 'balances:read']]);
         return [$plain, $token];
     }
 
     private function payload(array $overrides = []): array
     {
-        return array_merge(['external_invoice_id' => '4812', 'invoice_no' => 'INV-2026-4812', 'invoice_name' => 'Sales Invoice INV-2026-4812', 'order_no' => 'ORD-20260819-001', 'external_customer_id' => 'C-155', 'invoice_date' => '2026-08-19', 'currency' => 'IQD', 'amount' => 1250000, 'status' => 'active'], $overrides);
+        return array_merge(['external_invoice_id' => '4812', 'invoice_no' => 'INV-2026-4812', 'invoice_name' => 'Sales Invoice INV-2026-4812', 'order_no' => 'ORD-20260819-001', 'invoice_date' => '2026-08-25', 'currency' => 'IQD', 'amount' => 1250000, 'status' => 'active'], $overrides);
     }
 
     private function invoice(Company $company, Customer $customer, string $externalId, float $amount): ExternalInvoice
     {
-        return ExternalInvoice::create(['company_id' => $company->id, 'customer_id' => $customer->id, 'external_invoice_id' => $externalId, 'external_customer_id' => $customer->external_customer_id, 'invoice_no' => 'INV-'.$externalId, 'invoice_date' => now(), 'amount' => $amount]);
+        return ExternalInvoice::create(['company_id' => $company->id, 'customer_id' => $customer->id, 'external_invoice_id' => $externalId, 'external_customer_id' => $customer->integration_id, 'invoice_no' => 'INV-'.$externalId, 'invoice_date' => now(), 'amount' => $amount]);
     }
 
     private function receipt(Company $company, Customer $customer, float $amount): Receipt

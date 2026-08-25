@@ -8,5 +8,5 @@ Route::prefix('v1')->middleware('throttle:external-api')->group(function(){
     Route::post('/external-invoices/{externalInvoiceId}/cancel',[ExternalInvoiceApiController::class,'cancel'])->middleware('company.token:invoices:write');
     Route::get('/external-customers',[ExternalDataApiController::class,'customers'])->middleware('company.token:customers:read');
     Route::get('/external-banks',[ExternalDataApiController::class,'banks'])->middleware('company.token:banks:read');
-    Route::get('/customers/{externalCustomerId}/balance',[ExternalInvoiceApiController::class,'balance'])->middleware('company.token:balances:read');
+    Route::get('/customers/{customerId}/balance',[ExternalInvoiceApiController::class,'balance'])->middleware('company.token:balances:read');
 });

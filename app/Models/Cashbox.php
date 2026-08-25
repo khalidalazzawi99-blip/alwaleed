@@ -3,9 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Cashbox extends Model
 {
+    protected static function booted(): void
+    {
+        static::creating(function (Cashbox $cashbox): void {
+            $cashbox->integration_id ??= 'B-'.Str::ulid();
+        });
+
+        static::updating(function (Cashbox $cashbox): void {
+            if ($cashbox->isDirty('integration_id') && $cashbox->getOriginal('integration_id')) {
+                $cashbox->integration_id = $cashbox->getOriginal('integration_id');
+            }
+        });
+    }
+
     protected $fillable = [
         'company_id',
         'name',

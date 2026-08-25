@@ -27,7 +27,8 @@ class ExternalInvoiceApiController extends Controller
             'invoice_name' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'order_no' => ['required', 'string', 'max:191'],
-            'external_customer_id' => ['required', 'string', 'max:191'],
+            'customer_id' => ['nullable', 'required_without:external_customer_id', 'string', 'max:191'],
+            'external_customer_id' => ['nullable', 'required_without:customer_id', 'string', 'max:191'],
             'invoice_date' => ['required', 'date'],
             'currency' => ['required', 'string', 'size:3'],
             'amount' => ['required', 'decimal:0,2', 'gt:0'],
@@ -40,6 +41,13 @@ class ExternalInvoiceApiController extends Controller
         }
 
         $data = $validator->validated();
+        if (!empty($data['customer_id']) && !empty($data['external_customer_id']) && $data['customer_id'] !== $data['external_customer_id']) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => ['customer_id' => ['customer_id and external_customer_id must match when both are supplied.']],
+            ], 422);
+        }
+        $publicCustomerId = $data['customer_id'] ?? $data['external_customer_id'];
         $data['currency'] = strtoupper($data['currency']);
         $companyCurrency = strtoupper(Setting::where('company_id', $company->id)->value('currency') ?: 'IQD');
         if ($data['currency'] !== $companyCurrency) {
@@ -50,7 +58,7 @@ class ExternalInvoiceApiController extends Controller
         }
         $customer = Customer::query()
             ->where('company_id', $company->id)
-            ->where('external_customer_id', $data['external_customer_id'])
+            ->where('integration_id', $publicCustomerId)
             ->first();
 
         if (!$customer) {
@@ -64,7 +72,7 @@ class ExternalInvoiceApiController extends Controller
                     ['company_id' => $company->id, 'external_invoice_id' => $data['external_invoice_id']],
                     [
                         'customer_id' => $customer->id,
-                        'external_customer_id' => $data['external_customer_id'],
+                        'external_customer_id' => $customer->integration_id,
                         'invoice_no' => $data['invoice_no'],
                         'invoice_name' => $data['invoice_name'] ?? $data['description'] ?? null,
                         'order_no' => $data['order_no'],
@@ -82,7 +90,7 @@ class ExternalInvoiceApiController extends Controller
 
             return response()->json([
                 'message' => $invoice->wasRecentlyCreated ? 'Invoice received.' : 'Invoice replayed and safely updated.',
-                'data' => $invoice->fresh()->only(['id', 'external_invoice_id', 'invoice_no', 'invoice_name', 'order_no', 'invoice_date', 'currency', 'amount', 'status', 'customer_id']),
+                'data' => $this->invoiceData($invoice->fresh()),
             ], $invoice->wasRecentlyCreated ? 201 : 200);
         } catch (Throwable $exception) {
             Log::error('External invoice receive failed.', ['company_id' => $company->id, 'exception' => $exception::class]);
@@ -107,15 +115,57 @@ class ExternalInvoiceApiController extends Controller
 
     public function index(Request $request)
     {
-        return ExternalInvoice::query()->where('company_id', $request->attributes->get('company')->id)
-            ->latest('invoice_date')->paginate(min((int) $request->integer('per_page', 50), 100));
+        $request->validate(['per_page' => ['nullable', 'integer', 'min:1', 'max:100']]);
+        $page = ExternalInvoice::query()->where('company_id', $request->attributes->get('company')->id)
+            ->latest('invoice_date')->latest('id')->paginate(max(1, min($request->integer('per_page', 100), 100)))
+            ->withQueryString();
+
+        return response()->json([
+            'data' => $page->getCollection()->map(fn (ExternalInvoice $invoice) => $this->invoiceData($invoice))->values(),
+            'meta' => [
+                'current_page' => $page->currentPage(),
+                'per_page' => $page->perPage(),
+                'last_page' => $page->lastPage(),
+                'total' => $page->total(),
+            ],
+        ]);
     }
 
-    public function balance(Request $request, string $externalCustomerId, CustomerBalanceService $balances)
+    public function balance(Request $request, string $customerId, CustomerBalanceService $balances)
     {
         $customer = Customer::where('company_id', $request->attributes->get('company')->id)
-            ->where('external_customer_id', $externalCustomerId)->firstOrFail();
-        return response()->json(['customer' => $customer->only(['id', 'name', 'external_customer_id']), ...$balances->calculate($customer)]);
+            ->where('integration_id', $customerId)->firstOrFail();
+        $balance = $balances->calculate($customer);
+        $currency = strtoupper(Setting::where('company_id', $customer->company_id)->value('currency') ?: 'IQD');
+
+        return response()->json([
+            'data' => [
+                'customer_id' => $customer->integration_id,
+                'name' => $customer->name,
+                'total_invoices' => round($balance['totalInvoices'], 2),
+                'total_receipts' => round($balance['totalReceipts'], 2),
+                'balance' => round($balance['outstandingBalance'], 2),
+                'currency' => $currency,
+                'updated_at' => $customer->updated_at?->utc()->toIso8601String(),
+            ],
+        ]);
+    }
+
+    private function invoiceData(ExternalInvoice $invoice): array
+    {
+        return [
+            'external_invoice_id' => $invoice->external_invoice_id,
+            'invoice_no' => $invoice->invoice_no,
+            'invoice_name' => $invoice->invoice_name,
+            'order_no' => $invoice->order_no,
+            'customer_id' => $invoice->external_customer_id,
+            'invoice_date' => $invoice->invoice_date?->toDateString(),
+            'currency' => $invoice->currency,
+            'amount' => (float) $invoice->amount,
+            'status' => $invoice->status,
+            'created_at' => $invoice->created_at?->utc()->toIso8601String(),
+            'updated_at' => $invoice->updated_at?->utc()->toIso8601String(),
+        ];
     }
 
     private function record(int $companyId, Request $request, string $status, int $httpStatus, ?string $error = null): void

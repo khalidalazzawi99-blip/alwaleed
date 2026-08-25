@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Receipt extends Model
 {
+    protected $touches = ['customer'];
+
     protected $fillable = [
         'company_id',
         'cashbox_id',
