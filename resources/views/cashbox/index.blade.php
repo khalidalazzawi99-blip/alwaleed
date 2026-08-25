@@ -27,6 +27,30 @@
 </div>
 @endif
 
+<div class="card">
+    <h2>{{ __('سحب وإيداع مباشر') }}</h2>
+    @if($errors->any())
+        <div style="color:#B91C1C;margin-bottom:12px">{{ $errors->first() }}</div>
+    @endif
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+        @forelse($cashboxes->where('is_active', true) as $box)
+            <form method="POST" action="/cashbox/{{ $box->id }}/transactions" style="padding:16px;border:1px solid var(--border);border-radius:14px;display:grid;gap:10px">
+                @csrf
+                <strong>{{ $box->name }} — {{ number_format($box->balance, 2) }} {{ $companyCurrency }}</strong>
+                <select name="type" required>
+                    <option value="deposit">{{ __('إيداع مباشر') }}</option>
+                    <option value="withdrawal">{{ __('سحب مباشر') }}</option>
+                </select>
+                <input type="number" name="amount" min="0.01" step="0.01" placeholder="{{ __('المبلغ') }}" required>
+                <textarea name="notes" rows="2" placeholder="{{ __('ملاحظات') }}"></textarea>
+                <button type="submit">{{ __('تنفيذ العملية') }}</button>
+            </form>
+        @empty
+            <p>{{ __('لا يوجد صندوق فعال.') }}</p>
+        @endforelse
+    </div>
+</div>
+
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
 
     <div class="card">
@@ -70,6 +94,19 @@
         </thead>
 
         <tbody>
+
+        @foreach($cashboxLogs as $log)
+            <tr>
+                <td style="color:{{ $log->type === 'إيداع مباشر' ? '#16A34A' : '#DC2626' }};font-weight:800">{{ $log->type }}</td>
+                <td>{{ $log->reference_no }}</td>
+                <td>{{ $log->cashbox?->name ?? '-' }}</td>
+                <td style="color:{{ $log->type === 'إيداع مباشر' ? '#16A34A' : '#DC2626' }};font-weight:800">
+                    {{ $log->type === 'إيداع مباشر' ? '+' : '-' }}{{ number_format($log->amount, 2) }}
+                </td>
+                <td>{{ $log->created_at }}</td>
+                <td>{{ $log->notes }}</td>
+            </tr>
+        @endforeach
 
         @foreach($receipts as $receipt)
 

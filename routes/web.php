@@ -304,6 +304,8 @@ Route::middleware(['auth', 'subscription'])->group(function () {
             [CashboxController::class, 'index']
         );
 
+        Route::post('/cashbox/{cashbox}/transactions', [CashboxController::class, 'transaction']);
+
         Route::middleware('feature:multiple_cashboxes')->group(function () {
             Route::post('/cashbox', [CashboxController::class, 'store']);
             Route::put('/cashbox/{cashbox}', [CashboxController::class, 'update']);
