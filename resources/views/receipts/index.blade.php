@@ -130,7 +130,7 @@
     type="submit"
     class="danger"
     style="
-    font-family:'Tajawal',sans-serif;
+    font-family:var(--app-font);
     padding:13px 22px;
     border-radius:14px;
     font-weight:700;

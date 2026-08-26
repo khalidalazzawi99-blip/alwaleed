@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <title>Al Waleed ERP</title>
     <style>
-        body {font-family: Arial; background:#f4f6f8; margin:0;}
+        @font-face {font-family:'The Year of Handicrafts';src:url('{{ asset('fonts/the-year-of-handicrafts-regular.otf') }}') format('opentype');font-style:normal;font-weight:100 900;font-display:swap;}
+        html,body,button,input,textarea,select {font-family:'The Year of Handicrafts',sans-serif;}
+        body {background:#f4f6f8; margin:0;}
         .header {background:#111827; color:white; padding:25px; text-align:center;}
         .cards {display:grid; grid-template-columns:repeat(4,1fr); gap:20px; padding:30px;}
         .card {background:white; padding:25px; border-radius:15px; box-shadow:0 5px 20px #ddd;}

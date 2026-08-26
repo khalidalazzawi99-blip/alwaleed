@@ -23,11 +23,17 @@ font-weight:100 900;
 font-display:swap;
 }
 
+html,
+body,
+button,
+input,
+textarea,
+select,
 *{
 margin:0;
 padding:0;
 box-sizing:border-box;
-font-family:'The Year of Handicrafts','Tajawal',sans-serif;
+font-family:'The Year of Handicrafts',sans-serif;
 }
 
 body{
