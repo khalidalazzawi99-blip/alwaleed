@@ -127,7 +127,7 @@
 
             <button type="submit"
                     class="danger"
-                    style="font-family:var(--app-font);padding:10px 16px;border-radius:14px;font-weight:700;background:#DC2626;color:white;border:none;white-space:nowrap;"
+                    style="font-family:'Tajawal',sans-serif;padding:10px 16px;border-radius:14px;font-weight:700;background:#DC2626;color:white;border:none;white-space:nowrap;"
                     onclick="return confirm(@js(__('هل أنت متأكد من حذف السند؟')))"
             >
                 {{ __('حذف') }}

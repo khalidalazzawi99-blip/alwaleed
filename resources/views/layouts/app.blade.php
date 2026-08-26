@@ -31,7 +31,6 @@
 }
 
 :root{
-    --app-font:'The Year of Handicrafts',sans-serif;
     --bg:#F8F6F2;
     --surface:#FFFFFF;
     --surface-soft:#F8FAFC;
@@ -197,17 +196,9 @@ html{
     background:var(--bg);
 }
 
-html,
-body,
-button,
-input,
-textarea,
-select{
-    font-family:var(--app-font);
-}
-
 body{
     margin:0;
+    font-family:'The Year of Handicrafts',Tajawal,sans-serif;
     background:var(--bg);
     color:var(--text);
     transition:
@@ -450,7 +441,7 @@ html[data-theme="dark"] .theme-toggle::before{
     padding:13px;
     border-radius:16px;
 
-    font-family:var(--app-font);
+    font-family:'The Year of Handicrafts',Tajawal,sans-serif;
     font-weight:800;
     cursor:pointer;
 }
@@ -506,7 +497,7 @@ html[data-theme="dark"] .logout-btn{
 
     padding:13px 16px;
 
-    font-family:var(--app-font);
+    font-family:'The Year of Handicrafts',Tajawal,sans-serif;
 }
 
 .search-box::placeholder{
@@ -575,7 +566,7 @@ select{
     background:var(--surface-soft);
     color:var(--text);
 
-    font-family:var(--app-font);
+    font-family:'The Year of Handicrafts',Tajawal,sans-serif;
     font-size:15px;
 }
 
@@ -615,7 +606,7 @@ button,
     text-decoration:none;
     display:inline-block;
 
-    font-family:var(--app-font);
+    font-family:'The Year of Handicrafts',Tajawal,sans-serif;
 }
 
 button:hover,

@@ -5,19 +5,8 @@
 <title>{{ __('إدارة الزبائن') }}</title>
 
 <style>
-@font-face{
-    font-family:'The Year of Handicrafts';
-    src:url('{{ asset('fonts/the-year-of-handicrafts-regular.otf') }}') format('opentype');
-    font-style:normal;
-    font-weight:100 900;
-    font-display:swap;
-}
-
-html,body,button,input,textarea,select{
-    font-family:'The Year of Handicrafts',sans-serif;
-}
-
 body{
+    font-family:Tahoma;
     background:#f1f3f6;
     padding:20px;
 }
