@@ -13,21 +13,15 @@
 
 <title>{{ __('تسجيل الدخول | Al Waleed') }} </title>
 
-<style>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 
-@font-face{
-font-family:'The Year of Handicrafts';
-src:url('{{ asset('fonts/the-year-of-handicrafts-regular.otf') }}') format('opentype');
-font-style:normal;
-font-weight:100 900;
-font-display:swap;
-}
+<style>
 
 *{
 margin:0;
 padding:0;
 box-sizing:border-box;
-font-family:'The Year of Handicrafts','Tajawal',sans-serif;
+font-family:'Tajawal',sans-serif;
 }
 
 body{
