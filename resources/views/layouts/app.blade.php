@@ -5,10 +5,6 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>Al Waleed</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-
 <script>
 (function () {
     const savedTheme = localStorage.getItem('alwaleed-theme');
@@ -22,6 +18,14 @@
 </script>
 
 <style>
+@font-face{
+    font-family:'The Year of Handicrafts';
+    src:url('{{ asset('fonts/the-year-of-handicrafts-regular.otf') }}') format('opentype');
+    font-style:normal;
+    font-weight:100 900;
+    font-display:swap;
+}
+
 *{
     box-sizing:border-box;
 }
@@ -194,7 +198,7 @@ html{
 
 body{
     margin:0;
-    font-family:Tajawal;
+    font-family:'The Year of Handicrafts',Tajawal,sans-serif;
     background:var(--bg);
     color:var(--text);
     transition:
@@ -437,7 +441,7 @@ html[data-theme="dark"] .theme-toggle::before{
     padding:13px;
     border-radius:16px;
 
-    font-family:Tajawal;
+    font-family:'The Year of Handicrafts',Tajawal,sans-serif;
     font-weight:800;
     cursor:pointer;
 }
@@ -493,7 +497,7 @@ html[data-theme="dark"] .logout-btn{
 
     padding:13px 16px;
 
-    font-family:Tajawal;
+    font-family:'The Year of Handicrafts',Tajawal,sans-serif;
 }
 
 .search-box::placeholder{
@@ -562,7 +566,7 @@ select{
     background:var(--surface-soft);
     color:var(--text);
 
-    font-family:Tajawal;
+    font-family:'The Year of Handicrafts',Tajawal,sans-serif;
     font-size:15px;
 }
 
@@ -602,7 +606,7 @@ button,
     text-decoration:none;
     display:inline-block;
 
-    font-family:Tajawal;
+    font-family:'The Year of Handicrafts',Tajawal,sans-serif;
 }
 
 button:hover,
