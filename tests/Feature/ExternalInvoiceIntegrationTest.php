@@ -41,6 +41,42 @@ class ExternalInvoiceIntegrationTest extends TestCase
         $this->withToken('invalid')->postJson('/api/v1/external-invoices', $this->payload())->assertUnauthorized();
     }
 
+    public function test_bearer_token_with_accidental_surrounding_whitespace_is_accepted(): void
+    {
+        $company = $this->company();
+        [$plain] = $this->credential($company);
+
+        $this->withHeader('Authorization', 'Bearer '.$plain."\t")
+            ->getJson('/api/v1/external-customers')
+            ->assertOk();
+    }
+
+    public function test_activation_command_restores_the_company_integration_and_all_scopes(): void
+    {
+        $company = $this->company('Sippar');
+        $company->update(['status' => 'inactive']);
+        ExternalInvoiceIntegration::create([
+            'company_id' => $company->id,
+            'provider' => 'default',
+            'enabled' => false,
+        ]);
+        $plain = 'aw_live_'.str_repeat('A', 48);
+
+        $this->artisan('company-api-token:activate', ['company' => $company->name])
+            ->expectsQuestion('Paste the API token', $plain)
+            ->assertSuccessful();
+
+        $token = CompanyApiToken::where('token_hash', hash('sha256', $plain))->firstOrFail();
+        $this->assertSame($company->id, $token->company_id);
+        $this->assertNull($token->revoked_at);
+        $this->assertEqualsCanonicalizing(
+            ['invoices:read', 'invoices:write', 'balances:read', 'customers:read', 'banks:read'],
+            $token->scopes
+        );
+        $this->assertSame('active', $company->fresh()->status);
+        $this->assertTrue(ExternalInvoiceIntegration::where('company_id', $company->id)->value('enabled'));
+    }
+
     public function test_duplicate_invoice_is_updated_not_duplicated(): void
     {
         $company = $this->company(); $customer = $this->customer($company); [$plain] = $this->credential($company);

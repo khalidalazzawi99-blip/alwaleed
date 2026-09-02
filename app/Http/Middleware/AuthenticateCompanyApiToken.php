@@ -8,7 +8,9 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 class AuthenticateCompanyApiToken {
     public function handle(Request $request, Closure $next, string $scope='*'): Response {
-        $plain=$request->bearerToken();
+        // Tokens are commonly copied from password managers or chat clients.
+        // Ignore surrounding whitespace without changing the token itself.
+        $plain=trim((string) $request->bearerToken());
         if(!$plain) return response()->json(['message'=>'Unauthenticated.'],401);
         $token=CompanyApiToken::with('company')->where('token_hash',hash('sha256',$plain))->first();
         if(!$token) return response()->json(['message'=>'Invalid or expired API token.'],401);
