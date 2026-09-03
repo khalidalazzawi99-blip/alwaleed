@@ -32,7 +32,7 @@ class ActivateCompanyApiToken extends Command
             return self::FAILURE;
         }
 
-        $plain = trim((string) ($this->secret('Paste the API token')));
+        $plain = trim((string) (env('SIPPAR_API_TOKEN') ?: $this->secret('Paste the API token')));
 
         if (! preg_match('/^aw_live_[A-Za-z0-9]{48}$/', $plain)) {
             $this->error('Invalid token format; expected aw_live_ followed by 48 letters or numbers.');
