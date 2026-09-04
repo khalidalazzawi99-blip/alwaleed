@@ -224,6 +224,37 @@ class ExternalInvoiceIntegrationTest extends TestCase
             });
     }
 
+    public function test_balance_endpoints_include_payments_and_match_customer_current_balance(): void
+    {
+        $company = $this->company();
+        $customer = $this->customer($company);
+        [$plain] = $this->credential($company);
+        Setting::create(['company_id' => $company->id, 'company_name' => 'Test', 'currency' => 'USD']);
+        $this->invoice($company, $customer, 'CURRENT-BALANCE', 2775);
+        $this->receipt($company, $customer, 4500);
+        $this->payment($company, $customer, 3525);
+
+        $expected = [
+            'customer_id' => $customer->integration_id,
+            'total_invoices' => 2775,
+            'total_receipts' => 4500,
+            'total_payments' => 3525,
+            'current_balance' => 1800,
+            'balance' => 1800,
+            'currency' => 'USD',
+        ];
+
+        $this->withToken($plain)
+            ->getJson('/api/v1/customers/'.$customer->integration_id.'/balance')
+            ->assertOk()
+            ->assertJson(['data' => $expected]);
+
+        $this->withToken($plain)
+            ->getJson('/api/v1/external-customers')
+            ->assertOk()
+            ->assertJson(['data' => [$expected]]);
+    }
+
     private function company(string $suffix = ''): Company
     {
         return Company::create(['name' => 'Company '.$suffix, 'code' => 'C'.Str::upper(Str::random(8)), 'status' => 'active', 'subscription_start' => now(), 'subscription_end' => now()->addYear()]);
@@ -304,6 +335,11 @@ class ExternalInvoiceIntegrationTest extends TestCase
     private function invoice(Company $company, Customer $customer, string $externalId, float $amount): ExternalInvoice
     {
         return ExternalInvoice::create(['company_id' => $company->id, 'customer_id' => $customer->id, 'external_invoice_id' => $externalId, 'external_customer_id' => $customer->integration_id, 'invoice_no' => 'INV-'.$externalId, 'invoice_date' => now(), 'amount' => $amount]);
+    }
+
+    private function payment(Company $company, Customer $customer, float $amount): Payment
+    {
+        return Payment::create(['company_id' => $company->id, 'customer_id' => $customer->id, 'payment_no' => 'PAY-'.Str::random(8), 'payment_date' => now(), 'amount' => $amount]);
     }
 
     private function receipt(Company $company, Customer $customer, float $amount): Receipt

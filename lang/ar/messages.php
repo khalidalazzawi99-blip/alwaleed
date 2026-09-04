@@ -138,7 +138,7 @@ return [
     'filter' => 'تصفية',
     'clear' => 'مسح',
     'total_received' => 'إجمالي المقبوض',
-    'total_paid' => 'إجمالي المدفوع',
+    'total_paid' => 'إجمالي المصروف',
     'current_balance' => 'الرصيد الحالي',
     'movements_count' => 'عدد الحركات',
     'contact_information' => 'معلومات الاتصال',

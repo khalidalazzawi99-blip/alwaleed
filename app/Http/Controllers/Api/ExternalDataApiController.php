@@ -21,14 +21,22 @@ class ExternalDataApiController extends Controller
             ->orderBy('id')->paginate($this->perPage($request))->withQueryString();
 
         return response()->json([
-            'data' => $page->getCollection()->map(fn (Customer $customer) => [
-                'customer_id' => $customer->integration_id,
-                'name' => $customer->name,
-                'balance' => round($balances->calculate($customer)['outstandingBalance'], 2),
-                'currency' => strtoupper($currency),
-                'is_active' => true,
-                'updated_at' => $customer->updated_at?->utc()->toIso8601String(),
-            ])->values(),
+            'data' => $page->getCollection()->map(function (Customer $customer) use ($balances, $currency) {
+                $balance = $balances->calculate($customer);
+
+                return [
+                    'customer_id' => $customer->integration_id,
+                    'name' => $customer->name,
+                    'total_invoices' => round($balance['totalInvoices'], 2),
+                    'total_receipts' => round($balance['totalReceipts'], 2),
+                    'total_payments' => round($balance['totalPayments'], 2),
+                    'current_balance' => round($balance['currentBalance'], 2),
+                    'balance' => round($balance['currentBalance'], 2),
+                    'currency' => strtoupper($currency),
+                    'is_active' => true,
+                    'updated_at' => $customer->updated_at?->utc()->toIso8601String(),
+                ];
+            })->values(),
             'meta' => $this->pagination($page),
         ]);
     }

@@ -138,7 +138,7 @@ return [
     'filter' => 'Filter',
     'clear' => 'Clear',
     'total_received' => 'Total Received',
-    'total_paid' => 'Total Paid',
+    'total_paid' => 'Total Expenses',
     'current_balance' => 'Current Balance',
     'movements_count' => 'Movements',
     'contact_information' => 'Contact Information',
