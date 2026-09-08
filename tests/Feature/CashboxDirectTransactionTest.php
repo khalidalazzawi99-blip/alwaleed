@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Cashbox;
 use App\Models\Company;
+use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -46,6 +47,26 @@ class CashboxDirectTransactionTest extends TestCase
             'type' => 'deposit', 'amount' => 50,
         ])->assertNotFound();
         $this->assertSame(100.0, (float) $otherCashbox->fresh()->balance);
+    }
+
+    public function test_linked_customer_bank_transactions_create_vouchers(): void
+    {
+        [$company, $user] = $this->records();
+        $customer = Customer::create(['company_id' => $company->id, 'name' => 'Bank Customer']);
+        $cashbox = Cashbox::create([
+            'company_id' => $company->id, 'name' => 'Bank Account', 'account_type' => 'bank',
+            'bank_name' => 'Test Bank', 'account_number' => '123', 'balance' => 100, 'is_active' => true,
+        ]);
+        $cashbox->customers()->attach($customer);
+
+        $this->actingAs($user)->post("/cashbox/{$cashbox->id}/transactions", [
+            'type' => 'deposit', 'amount' => 25, 'customer_id' => $customer->id,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('receipts', [
+            'cashbox_id' => $cashbox->id, 'customer_id' => $customer->id, 'amount' => 25,
+        ]);
+        $this->assertSame(125.0, (float) $cashbox->fresh()->balance);
     }
 
     private function records(string $suffix = ''): array

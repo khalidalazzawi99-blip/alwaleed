@@ -38,4 +38,5 @@ class Customer extends Model
     public function payments() { return $this->hasMany(Payment::class); }
     public function externalInvoices() { return $this->hasMany(ExternalInvoice::class); }
     public function externalLinks() { return $this->hasMany(CustomerExternalLink::class); }
+    public function cashboxes() { return $this->belongsToMany(Cashbox::class)->withTimestamps(); }
 }

@@ -13,13 +13,21 @@
 <div class="card">
     <h2>إدارة الصناديق</h2>
     <form method="POST" action="/cashbox" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">@csrf
+        <div><label>{{ __('Account type') }}</label><select name="account_type"><option value="cash">{{ __('Cash') }}</option><option value="bank">{{ __('Bank') }}</option></select></div>
+        <div><label>{{ __('Bank name') }}</label><input name="bank_name"></div>
+        <div><label>{{ __('Account number') }}</label><input name="account_number"></div>
+        <div><label>{{ __('Linked customers') }}</label><select name="customer_ids[]" multiple size="3">@foreach($customers as $customer)<option value="{{ $customer->id }}">{{ $customer->name }}</option>@endforeach</select></div>
         <div><label>اسم الصندوق</label><input name="name" required></div>
         <div><label>الرصيد الافتتاحي</label><input type="number" step="0.01" name="balance" value="0"></div>
         <button>إضافة صندوق</button>
     </form>
     <table style="margin-top:18px"><thead><tr><th>الصندوق</th><th>الرصيد</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody>
     @forelse($cashboxes as $box)<tr><form method="POST" action="/cashbox/{{ $box->id }}">@csrf @method('PUT')
-        <td><input name="name" value="{{ $box->name }}" required></td><td>{{ number_format($box->balance,2) }} {{ $companyCurrency }}</td>
+        <td><input name="name" value="{{ $box->name }}" required></td>
+        <td><select name="account_type"><option value="cash" @selected($box->account_type === 'cash')>{{ __('Cash') }}</option><option value="bank" @selected($box->account_type === 'bank')>{{ __('Bank') }}</option></select></td>
+        <td><input name="bank_name" value="{{ $box->bank_name }}" placeholder="{{ __('Bank name') }}"><input name="account_number" value="{{ $box->account_number }}" placeholder="{{ __('Account number') }}"></td>
+        <td><select name="customer_ids[]" multiple size="3">@foreach($customers as $customer)<option value="{{ $customer->id }}" @selected($box->customers->contains($customer->id))>{{ $customer->name }}</option>@endforeach</select></td>
+        <td>{{ number_format($box->balance,2) }} {{ $companyCurrency }}</td>
         <td><label><input type="checkbox" name="is_active" value="1" @checked($box->is_active)> فعال</label></td>
         <td><button>حفظ</button></form>@if($cashboxes->count()>1 && (float)$box->balance===0.0)<form method="POST" action="/cashbox/{{ $box->id }}" style="display:inline">@csrf @method('DELETE')<button style="background:#B91C1C">حذف</button></form>@endif</td>
     </tr>@empty<tr><td colspan="4">لا يوجد صندوق.</td></tr>@endforelse
@@ -37,6 +45,9 @@
             <form method="POST" action="/cashbox/{{ $box->id }}/transactions" style="padding:16px;border:1px solid var(--border);border-radius:14px;display:grid;gap:10px">
                 @csrf
                 <strong>{{ $box->name }} — {{ number_format($box->balance, 2) }} {{ $companyCurrency }}</strong>
+                @if($box->customers->isNotEmpty())
+                    <select name="customer_id"><option value="">{{ __('Without customer') }}</option>@foreach($box->customers as $customer)<option value="{{ $customer->id }}">{{ $customer->name }}</option>@endforeach</select>
+                @endif
                 <select name="type" required>
                     <option value="deposit">{{ __('إيداع مباشر') }}</option>
                     <option value="withdrawal">{{ __('سحب مباشر') }}</option>

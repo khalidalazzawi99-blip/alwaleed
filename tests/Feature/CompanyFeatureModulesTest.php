@@ -48,6 +48,30 @@ class CompanyFeatureModulesTest extends TestCase
         $this->actingAs($user)->delete('/modules/projects/'.$record->id)->assertNotFound();
     }
 
+
+    public function test_installment_tracks_paid_and_remaining_amounts(): void
+    {
+        [$company, $user] = $this->companyUser();
+        CompanyFeature::create(['company_id' => $company->id, 'feature_key' => 'installments', 'enabled' => true]);
+
+        $this->actingAs($user)->post('/modules/installments', [
+            'name' => 'عقد اختبار',
+            'record_date' => now()->toDateString(),
+            'amount' => 1000,
+            'paid_amount' => 350,
+            'status' => 'active',
+        ])->assertRedirect();
+
+        $record = FeatureModuleRecord::where('company_id', $company->id)
+            ->where('module', 'installments')
+            ->firstOrFail();
+
+        $this->assertSame('350.00', $record->paid_amount);
+        $this->actingAs($user)->get('/modules/installments')
+            ->assertOk()
+            ->assertSee('650');
+    }
+
     public function test_voucher_attachment_is_saved_for_company_voucher(): void
     {
         Storage::fake('local');

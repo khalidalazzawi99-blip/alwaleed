@@ -23,6 +23,9 @@ class Cashbox extends Model
     protected $fillable = [
         'company_id',
         'name',
+        'account_type',
+        'bank_name',
+        'account_number',
         'balance',
         'is_active',
     ];
@@ -45,5 +48,10 @@ class Cashbox extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function customers()
+    {
+        return $this->belongsToMany(Customer::class)->withTimestamps();
     }
 }

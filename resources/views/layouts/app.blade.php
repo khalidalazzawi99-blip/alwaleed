@@ -860,6 +860,13 @@ html[dir="ltr"] .menu a:hover{
     transform:translateX(4px);
 }
 
+.module-icon,
+.feature-icon{
+    font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;
+    font-size:18px;
+    line-height:1;
+}
+
 .icon{
     width:19px;
     height:19px;
@@ -1617,14 +1624,14 @@ html[dir="ltr"] .menu-section::after{
                 @foreach(['inventory','sales','purchases','payroll','projects','installments'] as $featureKey)
                     @if($activeCompany->hasFeature($featureKey))
                         <a href="/modules/{{ $featureKey }}" class="{{ request()->is('modules/'.$featureKey.'*') ? 'active' : '' }}">
-                            <span style="font-size:18px">{{ config('features.modules.'.$featureKey.'.icon') }}</span>
+                            <span class="module-icon" aria-hidden="true">{{ config('features.modules.'.$featureKey.'.icon') }}</span>
                             {{ __(config('features.modules.'.$featureKey.'.name')) }}
                         </a>
                     @endif
                 @endforeach
                 @if($activeCompany->hasFeature('voucher_attachments'))
                     <a href="/voucher-attachments" class="{{ request()->is('voucher-attachments*') ? 'active' : '' }}">
-                        <span style="font-size:18px">{{ config('features.modules.voucher_attachments.icon') }}</span>
+                        <span class="module-icon" aria-hidden="true">{{ config('features.modules.voucher_attachments.icon') }}</span>
                         {{ __(config('features.modules.voucher_attachments.name')) }}
                     </a>
                 @endif

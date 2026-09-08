@@ -21,14 +21,10 @@ class FeatureModuleController extends Controller
     public function store(Request $request, string $module)
     {
         $this->ensureModule($module);
-        $data = $request->validate([
-            'reference' => ['nullable', 'string', 'max:100'],
-            'name' => ['required', 'string', 'max:255'],
-            'record_date' => ['required', 'date'],
-            'amount' => ['nullable', 'numeric', 'min:0'],
-            'status' => ['required', 'in:active,pending,completed,cancelled'],
-            'notes' => ['nullable', 'string', 'max:5000'],
-        ]);
+        $data = $request->validate($this->rules($module));
+        if ($module !== 'installments') {
+            $data['paid_amount'] = 0;
+        }
         FeatureModuleRecord::create($data + ['company_id' => auth()->user()->company_id, 'module' => $module]);
         return back()->with('success', 'تمت إضافة السجل بنجاح');
     }
@@ -36,13 +32,27 @@ class FeatureModuleController extends Controller
     public function update(Request $request, FeatureModuleRecord $record, string $module)
     {
         $this->ensureOwned($module, $record);
-        $data = $request->validate([
-            'reference' => ['nullable', 'string', 'max:100'], 'name' => ['required', 'string', 'max:255'],
-            'record_date' => ['required', 'date'], 'amount' => ['nullable', 'numeric', 'min:0'],
-            'status' => ['required', 'in:active,pending,completed,cancelled'], 'notes' => ['nullable', 'string', 'max:5000'],
-        ]);
+        $data = $request->validate($this->rules($module));
+        if ($module !== 'installments') {
+            $data['paid_amount'] = 0;
+        }
         $record->update($data);
         return back()->with('success', 'تم تحديث السجل بنجاح');
+    }
+
+    private function rules(string $module): array
+    {
+        return [
+            'reference' => ['nullable', 'string', 'max:100'],
+            'name' => ['required', 'string', 'max:255'],
+            'record_date' => ['required', 'date'],
+            'amount' => ['nullable', 'numeric', 'min:0'],
+            'paid_amount' => $module === 'installments'
+                ? ['nullable', 'numeric', 'min:0', 'lte:amount']
+                : ['nullable'],
+            'status' => ['required', 'in:active,pending,completed,cancelled'],
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ];
     }
 
     public function destroy(FeatureModuleRecord $record, string $module)

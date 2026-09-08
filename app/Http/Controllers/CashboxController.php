@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cashbox;
 use App\Models\CashboxLog;
+use App\Models\Customer;
 use App\Models\Receipt;
 use App\Models\Payment;
 use Illuminate\Http\Request;
@@ -15,9 +16,10 @@ class CashboxController extends Controller
     public function index()
     {
         $companyId = auth()->user()->company_id;
-        $cashboxes = Cashbox::where('company_id', $companyId)->orderBy('id')->get();
+        $cashboxes = Cashbox::with('customers')->where('company_id', $companyId)->orderBy('id')->get();
         return view('cashbox.index', [
             'cashboxes' => $cashboxes,
+            'customers' => Customer::where('company_id', $companyId)->orderBy('name')->get(),
             'balance' => $cashboxes->sum('balance'),
             'receipts' => Receipt::with('cashbox')->where('company_id', $companyId)->latest()->get(),
             'payments' => Payment::with('cashbox')->where('company_id', $companyId)->latest()->get(),
@@ -32,16 +34,32 @@ class CashboxController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'balance' => ['nullable', 'numeric']]);
-        Cashbox::create($data + ['company_id' => auth()->user()->company_id, 'is_active' => true]);
+        $data = $request->validate($this->cashboxRules(true));
+        $customerIds = $this->ownedCustomerIds($data['customer_ids'] ?? []);
+        unset($data['customer_ids']);
+        $data['account_type'] ??= 'cash';
+        if ($data['account_type'] === 'cash') {
+            $data['bank_name'] = null;
+            $data['account_number'] = null;
+        }
+        $cashbox = Cashbox::create($data + ['company_id' => auth()->user()->company_id, 'is_active' => true]);
+        $cashbox->customers()->sync($customerIds);
         return back()->with('success', 'تمت إضافة الصندوق');
     }
 
     public function update(Request $request, Cashbox $cashbox)
     {
         $this->ensureOwned($cashbox);
-        $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'is_active' => ['nullable', 'boolean']]);
-        $cashbox->update(['name' => $data['name'], 'is_active' => $request->boolean('is_active')]);
+        $data = $request->validate($this->cashboxRules(false));
+        $customerIds = $this->ownedCustomerIds($data['customer_ids'] ?? []);
+        unset($data['customer_ids'], $data['balance']);
+        $data['account_type'] ??= $cashbox->account_type ?? 'cash';
+        if ($data['account_type'] === 'cash') {
+            $data['bank_name'] = null;
+            $data['account_number'] = null;
+        }
+        $cashbox->update($data + ['is_active' => $request->boolean('is_active')]);
+        $cashbox->customers()->sync($customerIds);
         return back()->with('success', 'تم تحديث الصندوق');
     }
 
@@ -63,9 +81,17 @@ class CashboxController extends Controller
             'type' => ['required', 'in:deposit,withdrawal'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'customer_id' => ['nullable', 'integer'],
         ]);
 
-        DB::transaction(function () use ($cashbox, $data): void {
+        $customer = isset($data['customer_id'])
+            ? Customer::whereKey($data['customer_id'])->where('company_id', auth()->user()->company_id)->firstOrFail()
+            : null;
+        if ($customer && !$cashbox->customers()->whereKey($customer->id)->exists()) {
+            throw ValidationException::withMessages(['customer_id' => 'الزبون غير مرتبط بهذا الحساب.']);
+        }
+
+        DB::transaction(function () use ($cashbox, $data, $customer): void {
             $lockedCashbox = Cashbox::whereKey($cashbox->id)
                 ->where('company_id', auth()->user()->company_id)
                 ->lockForUpdate()->firstOrFail();
@@ -82,12 +108,26 @@ class CashboxController extends Controller
                 : $lockedCashbox->decrement('balance', $amount);
             $lockedCashbox->refresh();
 
+            if ($customer) {
+                $voucherData = [
+                    'company_id' => $lockedCashbox->company_id,
+                    'customer_id' => $customer->id,
+                    'cashbox_id' => $lockedCashbox->id,
+                    'amount' => $amount,
+                    'notes' => $data['notes'] ?? null,
+                ];
+                $reference = 'BANK-'.now()->format('YmdHis').'-'.$lockedCashbox->id.'-'.$customer->id;
+                $data['type'] === 'deposit'
+                    ? Receipt::create($voucherData + ['receipt_no' => $reference, 'receipt_date' => now()->toDateString()])
+                    : Payment::create($voucherData + ['payment_no' => $reference, 'payment_date' => now()->toDateString()]);
+            }
+
             CashboxLog::create([
                 'company_id' => $lockedCashbox->company_id,
                 'cashbox_id' => $lockedCashbox->id,
                 'type' => $data['type'] === 'deposit' ? 'إيداع مباشر' : 'سحب مباشر',
                 'reference_no' => 'DIRECT-'.now()->format('YmdHis').'-'.$lockedCashbox->id,
-                'person_name' => auth()->user()->name,
+                'person_name' => $customer?->name ?? auth()->user()->name,
                 'amount' => $amount,
                 'balance_after' => $lockedCashbox->balance,
                 'notes' => $data['notes'] ?? null,
@@ -97,6 +137,26 @@ class CashboxController extends Controller
         return back()->with('success', $data['type'] === 'deposit'
             ? 'تم الإيداع في الصندوق بنجاح'
             : 'تم السحب من الصندوق بنجاح');
+    }
+
+    private function cashboxRules(bool $creating): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'account_type' => ['nullable', 'in:cash,bank'],
+            'bank_name' => ['nullable', 'required_if:account_type,bank', 'string', 'max:255'],
+            'account_number' => ['nullable', 'string', 'max:100'],
+            'balance' => $creating ? ['nullable', 'numeric', 'min:0'] : ['nullable'],
+            'is_active' => ['nullable', 'boolean'],
+            'customer_ids' => ['nullable', 'array'],
+            'customer_ids.*' => ['integer'],
+        ];
+    }
+
+    private function ownedCustomerIds(array $ids): array
+    {
+        return Customer::where('company_id', auth()->user()->company_id)
+            ->whereIn('id', $ids)->pluck('id')->all();
     }
 
     private function ensureOwned(Cashbox $cashbox): void
