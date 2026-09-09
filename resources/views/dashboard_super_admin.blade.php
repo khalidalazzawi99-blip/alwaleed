@@ -313,7 +313,9 @@
 </style>
 
 
-<div class="owner-dashboard">
+@include('partials.dashboard-motion-assets')
+
+<div class="owner-dashboard dashboard-motion">
 
     <div class="owner-hero">
 
@@ -328,6 +330,8 @@
         </div>
 
         <div class="hero-actions">
+
+            @include('partials.dashboard-motion-toggle')
 
             <a href="/admin/companies/create" class="btn">
                 + {{ __('messages.add_company') }}

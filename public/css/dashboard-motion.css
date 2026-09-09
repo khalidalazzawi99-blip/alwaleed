@@ -1,0 +1,165 @@
+.dashboard-motion :is(.dashboard-head, .owner-hero) {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+}
+
+.dashboard-motion :is(.dashboard-head, .owner-hero) > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* A soft glow and an orbit sit behind the header content. */
+.dashboard-motion :is(.dashboard-head, .owner-hero)::before,
+.dashboard-motion :is(.dashboard-head, .owner-hero)::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: -1;
+    border-radius: 50%;
+}
+
+.dashboard-motion :is(.dashboard-head, .owner-hero)::before {
+    width: 360px;
+    height: 360px;
+    inset-inline-end: -80px;
+    top: -150px;
+    background: radial-gradient(circle, rgba(191, 154, 99, .22), rgba(191, 154, 99, 0) 70%);
+}
+
+.dashboard-motion :is(.dashboard-head, .owner-hero)::after {
+    width: 230px;
+    height: 230px;
+    left: auto;
+    inset-inline-end: 8%;
+    top: -100px;
+    border: 1px solid rgba(166, 138, 100, .18);
+    background:
+        radial-gradient(circle at 50% 4%, #b89b73 0 3px, transparent 4px),
+        radial-gradient(circle at 96% 50%, rgba(184, 155, 115, .55) 0 4px, transparent 5px);
+    box-shadow: 0 0 0 28px rgba(166, 138, 100, .045), 0 0 0 56px rgba(166, 138, 100, .025);
+}
+
+.dashboard-motion :is(.stat-box, .owner-stat, .mini-stat, .dashboard-card, .owner-card) {
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+
+.dashboard-motion :is(.head-btn, .hero-actions .btn, .quick-action, .quick-owner a, .stat-icon) {
+    transition: transform .25s ease, box-shadow .25s ease, background-color .25s ease;
+}
+
+.dashboard-motion .dashboard-motion-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    min-height: 44px;
+    flex: 0 0 44px;
+    padding: 0;
+    border: 1px solid var(--border, #e8e1d8);
+    border-radius: 13px;
+    background: var(--surface, #fff);
+    color: var(--text, #806344);
+    cursor: pointer;
+}
+
+.dashboard-motion .dashboard-motion-toggle[hidden] {
+    display: none;
+}
+
+.dashboard-motion-toggle svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.dashboard-motion .motion-play-icon,
+.dashboard-motion[data-motion="off"] .motion-pause-icon {
+    display: none;
+}
+
+.dashboard-motion[data-motion="off"] .motion-play-icon {
+    display: block;
+}
+
+.dashboard-motion :is(a, button):focus-visible {
+    outline: 2px solid #a68a64;
+    outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .dashboard-motion[data-motion="on"] :is(.dashboard-head, .owner-hero)::before {
+        animation: dashboard-glow 12s ease-in-out infinite alternate;
+    }
+
+    .dashboard-motion[data-motion="on"] :is(.dashboard-head, .owner-hero)::after {
+        animation: dashboard-orbit 32s linear infinite;
+    }
+
+    .dashboard-motion[data-motion="on"] :is(.stat-box, .owner-stat, .mini-stat, .dashboard-card, .owner-card) {
+        animation: dashboard-arrive .6s cubic-bezier(.2, .7, .3, 1) var(--motion-delay, 0ms) backwards;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        .dashboard-motion[data-motion="on"] :is(.stat-box, .owner-stat, .mini-stat):hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 32px rgba(128, 99, 68, .12);
+            border-color: #c7b292;
+        }
+
+        .dashboard-motion[data-motion="on"] :is(.stat-box, .owner-stat):hover .stat-icon {
+            transform: translateY(-3px) rotate(-7deg);
+        }
+
+        .dashboard-motion[data-motion="on"] :is(.head-btn, .hero-actions .btn, .quick-action, .quick-owner a):hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(128, 99, 68, .12);
+        }
+    }
+
+    .dashboard-motion[data-motion="on"] :is(.head-btn, .hero-actions .btn, .quick-action, .quick-owner a):active {
+        transform: scale(.98);
+    }
+}
+
+.dashboard-motion.motion-page-hidden *,
+.dashboard-motion.motion-page-hidden *::before,
+.dashboard-motion.motion-page-hidden *::after {
+    animation-play-state: paused !important;
+}
+
+.dashboard-motion[data-motion="off"] *,
+.dashboard-motion[data-motion="off"] *::before,
+.dashboard-motion[data-motion="off"] *::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-motion *,
+    .dashboard-motion *::before,
+    .dashboard-motion *::after {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+    }
+}
+
+@keyframes dashboard-arrive {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dashboard-glow {
+    from { transform: translate(-18px, -8px) scale(.95); }
+    to { transform: translate(24px, 18px) scale(1.12); }
+}
+
+@keyframes dashboard-orbit {
+    to { transform: rotate(360deg); }
+}
