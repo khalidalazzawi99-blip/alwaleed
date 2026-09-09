@@ -8,6 +8,7 @@
         @case('edit')<path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15v5Z"/>@break
         @case('history')<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>@break
         @case('receipt')<path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M9 7h6M9 11h6M9 15h3"/>@break
+        @case('print')<path d="M7 8V3h10v5M7 17H3V9h18v8h-4"/><path d="M7 14h10v7H7zM17 11h.01"/>@break
         @case('filter')<path d="M4 5h16l-6 7v7l-4 2v-9L4 5Z"/>@break
         @default<rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 9h18M21 13h-5a2 2 0 0 0 0 4h5M17 15h.01"/>
     @endswitch

@@ -306,6 +306,11 @@ Route::middleware(['auth', 'subscription'])->group(function () {
 
         Route::post('/cashbox/{cashbox}/transactions', [CashboxController::class, 'transaction']);
 
+        Route::get('/cashbox/{cashbox}/statement', [CashboxController::class, 'statement'])->name('cashbox.statement');
+        Route::get('/cashbox/{cashbox}/statement/print', [CashboxController::class, 'statement'])->name('cashbox.statement.print');
+        Route::get('/banks/{cashbox}/statement', [CashboxController::class, 'statement'])->name('banks.statement');
+        Route::get('/banks/{cashbox}/statement/print', [CashboxController::class, 'statement'])->name('banks.statement.print');
+
         Route::get('/banks', [CashboxController::class, 'index'])->name('banks.index');
         Route::post('/banks', [CashboxController::class, 'storeBank'])->name('banks.store');
         Route::put('/banks/{cashbox}', [CashboxController::class, 'updateBank'])->name('banks.update');

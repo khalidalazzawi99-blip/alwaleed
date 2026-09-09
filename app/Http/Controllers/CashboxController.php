@@ -7,6 +7,7 @@ use App\Models\CashboxLog;
 use App\Models\Customer;
 use App\Models\Receipt;
 use App\Models\Payment;
+use App\Services\CashboxStatementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -44,6 +45,22 @@ class CashboxController extends Controller
             'totalReceipts' => $receipts->sum('amount') + $cashboxLogs->where('type', 'إيداع مباشر')->sum('amount'),
             'totalPayments' => $payments->sum('amount') + $cashboxLogs->where('type', 'سحب مباشر')->sum('amount'),
         ]);
+    }
+
+    public function statement(Request $request, Cashbox $cashbox, CashboxStatementService $statements)
+    {
+        $this->ensureOwned($cashbox);
+        if ($request->routeIs('banks.*')) {
+            abort_unless($cashbox->account_type === 'bank', 404);
+        }
+        $filters = $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', ...($request->filled('from') ? ['after_or_equal:from'] : [])],
+        ]);
+        $data = $statements->calculate($cashbox, $filters['from'] ?? null, $filters['to'] ?? null);
+        $data['statementRoute'] = $cashbox->account_type === 'bank' ? 'banks.statement' : 'cashbox.statement';
+
+        return view($request->routeIs('*.print') ? 'cashbox.statement-print' : 'cashbox.statement', $data);
     }
 
     public function storeBank(Request $request)

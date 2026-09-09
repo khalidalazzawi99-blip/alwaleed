@@ -1594,7 +1594,7 @@ html[dir="ltr"] .menu-section::after{
 
             <a
                 href="/cashbox"
-                class="{{ request()->is('cashbox') ? 'active' : '' }}"
+                class="{{ request()->is('cashbox*') ? 'active' : '' }}"
             >
                 <svg class="icon" viewBox="0 0 24 24"><path d="M4 6h14a2 2 0 0 1 2 2v10H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12"/><path d="M16 11h4"/></svg> {{ __('messages.cashbox') }}
             </a>
