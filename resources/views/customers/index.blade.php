@@ -51,6 +51,8 @@
         <tr>
             <th>#</th>
             <th>{{ __('الاسم') }}</th>
+            <th>{{ __('messages.remaining_amount') }}</th>
+            <th>{{ __('messages.paid_amount') }}</th>
             <th>{{ __('الهاتف') }}</th>
             <th>{{ __('الشركة') }}</th>
             <th>{{ __('العنوان') }}</th>
@@ -70,6 +72,8 @@
         {{ $customer->name }}
     </a>
 </td>
+            <td style="white-space:nowrap;font-weight:800"><bdi>{{ number_format($customer->remaining_amount, 2) }}</bdi> {{ $companyCurrency }}</td>
+            <td style="white-space:nowrap;font-weight:700"><bdi>{{ number_format($customer->paid_amount, 2) }}</bdi> {{ $companyCurrency }}</td>
             <td>{{ $customer->phone }}</td>
             <td>{{ $customer->company_name }}</td>
             <td>{{ $customer->address }}</td>

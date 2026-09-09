@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'remaining_amount' => 'Remaining amount',
+    'paid_amount' => 'Paid amount',
     'dashboard' => 'Dashboard',
     'owner_dashboard' => 'System Owner Dashboard',
     'companies' => 'Companies',

@@ -19,8 +19,18 @@ class CustomerController extends Controller
         $companyId = auth()->user()->company_id;
 
         $customers = Customer::where('company_id', $companyId)
+            ->withSum(['receipts as total_received' => fn ($query) => $query->where('company_id', $companyId)], 'amount')
+            ->withSum(['payments as total_paid' => fn ($query) => $query->where('company_id', $companyId)], 'amount')
+            ->withSum(['externalInvoices as total_invoiced' => fn ($query) => $query->where('company_id', $companyId)->where('status', '!=', 'cancelled')], 'amount')
             ->latest()
             ->get();
+
+        $customers->each(function (Customer $customer) {
+            $customer->remaining_amount = (float) $customer->total_invoiced > 0
+                    ? (float) $customer->total_invoiced + (float) $customer->total_paid - (float) $customer->total_received
+                    : (float) $customer->total_received - (float) $customer->total_paid;
+            $customer->paid_amount = (float) $customer->total_received;
+        });
 
         return view('customers.index', compact('customers'));
     }

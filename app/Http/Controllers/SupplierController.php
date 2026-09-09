@@ -18,8 +18,15 @@ class SupplierController extends Controller
         $companyId = auth()->user()->company_id;
 
         $suppliers = Supplier::where('company_id', $companyId)
+            ->withSum(['receipts as total_received' => fn ($query) => $query->where('company_id', $companyId)], 'amount')
+            ->withSum(['payments as total_paid' => fn ($query) => $query->where('company_id', $companyId)], 'amount')
             ->latest()
             ->get();
+
+        $suppliers->each(function (Supplier $supplier) {
+            $supplier->remaining_amount = (float) $supplier->total_received - (float) $supplier->total_paid;
+            $supplier->paid_amount = (float) $supplier->total_paid;
+        });
 
         return view('suppliers.index', compact('suppliers'));
     }

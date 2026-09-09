@@ -41,6 +41,8 @@
             <tr>
                 <th>#</th>
                 <th>{{ __('الاسم') }}</th>
+            <th>{{ __('messages.remaining_amount') }}</th>
+            <th>{{ __('messages.paid_amount') }}</th>
                 <th>{{ __('الهاتف') }}</th>
                 <th>{{ __('الشركة') }}</th>
                 <th>{{ __('العنوان') }}</th>
@@ -58,7 +60,9 @@
         {{ $supplier->name }}
     </a>
 </td>
-                <td>{{ $supplier->phone }}</td>
+                <td style="white-space:nowrap;font-weight:800"><bdi>{{ number_format($supplier->remaining_amount, 2) }}</bdi> {{ $companyCurrency }}</td>
+            <td style="white-space:nowrap;font-weight:700"><bdi>{{ number_format($supplier->paid_amount, 2) }}</bdi> {{ $companyCurrency }}</td>
+            <td>{{ $supplier->phone }}</td>
                 <td>{{ $supplier->company_name }}</td>
                 <td>{{ $supplier->address }}</td>
                 <td><a href="/suppliers/{{ $supplier->id }}/edit" class="btn">{{ __('تعديل') }}</a></td>

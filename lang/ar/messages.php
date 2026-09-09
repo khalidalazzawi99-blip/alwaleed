@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'remaining_amount' => 'المبلغ الباقي',
+    'paid_amount' => 'المبلغ المدفوع',
     'dashboard' => 'لوحة التحكم',
     'owner_dashboard' => 'لوحة مالك النظام',
     'companies' => 'الشركات المشتركة',
