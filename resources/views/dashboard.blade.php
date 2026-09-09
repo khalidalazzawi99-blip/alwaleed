@@ -359,9 +359,7 @@
 </style>
 
 
-@include('partials.dashboard-motion-assets')
-
-<div class="dashboard-wrap dashboard-motion">
+<div class="dashboard-wrap">
 
     {{-- Header --}}
     <div class="dashboard-head">
@@ -377,8 +375,6 @@
         </div>
 
         <div class="head-actions">
-
-            @include('partials.dashboard-motion-toggle')
 
             <a href="/receipts" class="head-btn receipt-btn">
                 + {{ __('messages.add_receipt') }}

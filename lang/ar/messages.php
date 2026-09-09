@@ -1,8 +1,6 @@
 <?php
 
 return [
-    'pause_dashboard_motion' => 'إيقاف حركة اللوحة',
-    'resume_dashboard_motion' => 'تشغيل حركة اللوحة',
     'accounts_simple_intro' => 'اختر حسابك لإجراء عملية أو عرض كشف الحساب.',
     'account_details' => 'الحساب',
     'account_actions' => 'الإجراءات',
