@@ -2,7 +2,6 @@
     type="button"
     class="dashboard-motion-toggle"
     data-dashboard-motion-toggle
-    data-reduced-label="{{ __('messages.reduced_dashboard_motion') }}"
     data-pause-label="{{ __('messages.pause_dashboard_motion') }}"
     data-resume-label="{{ __('messages.resume_dashboard_motion') }}"
     aria-label="{{ __('messages.pause_dashboard_motion') }}"

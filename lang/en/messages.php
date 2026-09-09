@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'reduced_dashboard_motion' => 'Animations are off because your device prefers reduced motion',
     'pause_dashboard_motion' => 'Pause dashboard animations',
     'resume_dashboard_motion' => 'Play dashboard animations',
     'accounts_simple_intro' => 'Choose an account to make a transaction or view its statement.',
