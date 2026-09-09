@@ -118,12 +118,25 @@
 .stat-icon{
     width:38px;
     height:38px;
+    flex:0 0 38px;
     background:#F5F1EB;
+    color:#806344;
     border-radius:12px;
     display:flex;
     align-items:center;
     justify-content:center;
     font-size:17px;
+}
+
+.stat-icon svg{
+    width:22px;
+    height:22px;
+    display:block;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
 }
 
 .stat-value{
@@ -424,7 +437,7 @@
 
             <div class="stat-top">
                 <p class="stat-title">{{ __('messages.cashbox_balance') }}</p>
-                <div class="stat-icon">◉</div>
+                <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 9h18"/><path d="M21 13h-5a2 2 0 0 0 0 4h5"/><path d="M17 15h.01"/></svg></div>
             </div>
 
             <div class="stat-value gold">
@@ -442,7 +455,7 @@
 
             <div class="stat-top">
                 <p class="stat-title">{{ __('messages.total_receipts') }}</p>
-                <div class="stat-icon">↓</div>
+                <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></div>
             </div>
 
             <div class="stat-value green">
@@ -460,7 +473,7 @@
 
             <div class="stat-top">
                 <p class="stat-title">{{ __('messages.total_payments') }}</p>
-                <div class="stat-icon">↑</div>
+                <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15V3m-5 5 5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></div>
             </div>
 
             <div class="stat-value red">
@@ -478,7 +491,7 @@
 
             <div class="stat-top">
                 <p class="stat-title">{{ __('messages.net_movement') }}</p>
-                <div class="stat-icon">≈</div>
+                <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16m-4-4 4 4-4 4"/><path d="M20 17H4m4-4-4 4 4 4"/></svg></div>
             </div>
 
             <div class="stat-value {{ $netMovement >= 0 ? 'green' : 'red' }}">
