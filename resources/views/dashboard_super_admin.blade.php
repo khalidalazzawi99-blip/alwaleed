@@ -318,6 +318,7 @@
 <div class="owner-dashboard dashboard-motion">
 
     <div class="owner-hero">
+        @include('partials.dashboard-motion-decoration')
 
         <div class="hero-content">
 

@@ -1,53 +1,55 @@
+/* Decorative layers are clipped to the hero and never intercept input. */
 .dashboard-motion :is(.dashboard-head, .owner-hero) {
     position: relative;
     isolation: isolate;
     overflow: hidden;
 }
-
-.dashboard-motion :is(.dashboard-head, .owner-hero) > * {
+.dashboard-motion :is(.dashboard-head, .owner-hero) > :not(.dashboard-decoration) {
     position: relative;
     z-index: 1;
+    min-width: 0;
 }
-
-/* A soft glow and an orbit sit behind the header content. */
-.dashboard-motion :is(.dashboard-head, .owner-hero)::before,
-.dashboard-motion :is(.dashboard-head, .owner-hero)::after {
-    content: "";
+.dashboard-motion .owner-hero::after { content: none; }
+.dashboard-motion .dashboard-decoration {
     position: absolute;
+    inset: 0;
+    z-index: 0;
     pointer-events: none;
-    z-index: -1;
+    overflow: hidden;
+    border-radius: inherit;
+}
+.dashboard-decoration span {
+    position: absolute;
+    display: block;
     border-radius: 50%;
 }
-
-.dashboard-motion :is(.dashboard-head, .owner-hero)::before {
+.dashboard-glow {
     width: 360px;
     height: 360px;
-    inset-inline-end: -80px;
-    top: -150px;
-    background: radial-gradient(circle, rgba(191, 154, 99, .22), rgba(191, 154, 99, 0) 70%);
+    inset-inline-start: -60px;
+    top: -140px;
+    background: radial-gradient(circle, rgba(191,154,99,.23), transparent 70%);
 }
-
-.dashboard-motion :is(.dashboard-head, .owner-hero)::after {
+.dashboard-orbit {
     width: 230px;
     height: 230px;
-    left: auto;
-    inset-inline-end: 8%;
-    top: -100px;
-    border: 1px solid rgba(166, 138, 100, .18);
+    inset-inline-start: 8%;
+    top: -105px;
+    border: 1px solid rgba(166,138,100,.2);
     background:
         radial-gradient(circle at 50% 4%, #b89b73 0 3px, transparent 4px),
-        radial-gradient(circle at 96% 50%, rgba(184, 155, 115, .55) 0 4px, transparent 5px);
-    box-shadow: 0 0 0 28px rgba(166, 138, 100, .045), 0 0 0 56px rgba(166, 138, 100, .025);
+        radial-gradient(circle at 96% 50%, rgba(184,155,115,.6) 0 4px, transparent 5px);
+    box-shadow: 0 0 0 28px rgba(166,138,100,.05), 0 0 0 56px rgba(166,138,100,.03);
 }
-
 .dashboard-motion :is(.stat-box, .owner-stat, .mini-stat, .dashboard-card, .owner-card) {
+    min-width: 0;
     transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
 }
-
-.dashboard-motion :is(.head-btn, .hero-actions .btn, .quick-action, .quick-owner a, .stat-icon) {
+.dashboard-motion :is(.head-btn, .hero-actions .btn, .quick-action, .quick-owner a, .stat-icon, button svg, a svg) {
     transition: transform .25s ease, box-shadow .25s ease, background-color .25s ease;
 }
-
+.dashboard-motion :is(.head-actions, .hero-actions) { flex-wrap: wrap; }
+.dashboard-motion h1 { overflow-wrap: anywhere; }
 .dashboard-motion .dashboard-motion-toggle {
     display: inline-flex;
     align-items: center;
@@ -59,14 +61,11 @@
     border: 1px solid var(--border, #e8e1d8);
     border-radius: 13px;
     background: var(--surface, #fff);
-    color: var(--text, #806344);
+    color: var(--menu-section, #806344);
     cursor: pointer;
 }
-
-.dashboard-motion .dashboard-motion-toggle[hidden] {
-    display: none;
-}
-
+.dashboard-motion .dashboard-motion-toggle[hidden] { display: none; }
+.dashboard-motion .dashboard-motion-toggle:disabled { cursor: default; opacity: .65; }
 .dashboard-motion-toggle svg {
     width: 20px;
     height: 20px;
@@ -76,62 +75,51 @@
     stroke-linecap: round;
     stroke-linejoin: round;
 }
-
 .dashboard-motion .motion-play-icon,
-.dashboard-motion[data-motion="off"] .motion-pause-icon {
-    display: none;
-}
-
-.dashboard-motion[data-motion="off"] .motion-play-icon {
-    display: block;
-}
-
+.dashboard-motion[data-motion="off"] .motion-pause-icon { display: none; }
+.dashboard-motion[data-motion="off"] .motion-play-icon { display: block; }
 .dashboard-motion :is(a, button):focus-visible {
-    outline: 2px solid #a68a64;
+    outline: 2px solid var(--menu-section, #a68a64);
     outline-offset: 4px;
 }
-
 @media (prefers-reduced-motion: no-preference) {
-    .dashboard-motion[data-motion="on"] :is(.dashboard-head, .owner-hero)::before {
+    .dashboard-motion[data-motion="on"] .dashboard-glow {
         animation: dashboard-glow 12s ease-in-out infinite alternate;
     }
-
-    .dashboard-motion[data-motion="on"] :is(.dashboard-head, .owner-hero)::after {
-        animation: dashboard-orbit 32s linear infinite;
+    .dashboard-motion[data-motion="on"] .dashboard-orbit {
+        animation: dashboard-orbit 36s linear infinite;
     }
-
-    .dashboard-motion[data-motion="on"] :is(.stat-box, .owner-stat, .mini-stat, .dashboard-card, .owner-card) {
-        animation: dashboard-arrive .6s cubic-bezier(.2, .7, .3, 1) var(--motion-delay, 0ms) backwards;
+    .dashboard-motion[data-motion="on"].motion-enter :is(.stat-box, .owner-stat, .mini-stat, .dashboard-card, .owner-card) {
+        animation: dashboard-arrive .6s cubic-bezier(.2,.7,.3,1) var(--motion-delay, 0ms) backwards;
     }
-
     @media (hover: hover) and (pointer: fine) {
-        .dashboard-motion[data-motion="on"] :is(.stat-box, .owner-stat, .mini-stat):hover {
-            transform: translateY(-4px);
-            box-shadow: 0 16px 32px rgba(128, 99, 68, .12);
-            border-color: #c7b292;
-        }
-
-        .dashboard-motion[data-motion="on"] :is(.stat-box, .owner-stat):hover .stat-icon {
-            transform: translateY(-3px) rotate(-7deg);
-        }
-
-        .dashboard-motion[data-motion="on"] :is(.head-btn, .hero-actions .btn, .quick-action, .quick-owner a):hover {
+        .dashboard-motion[data-motion="on"] :is(.stat-box, .owner-stat, .mini-stat, .dashboard-card, .owner-card):hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 18px rgba(128, 99, 68, .12);
+            box-shadow: 0 16px 32px rgba(128,99,68,.12);
+            border-color: var(--accent-dark, #c7b292);
+        }
+        .dashboard-motion[data-motion="on"] :is(.stat-box, .owner-stat):hover .stat-icon,
+        .dashboard-motion[data-motion="on"] :is(a, button:enabled):hover svg {
+            transform: translateY(-2px) rotate(-6deg);
+        }
+        .dashboard-motion[data-motion="on"] :is(.head-btn, .hero-actions .btn, .quick-action, .quick-owner a):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(128,99,68,.12);
         }
     }
-
-    .dashboard-motion[data-motion="on"] :is(.head-btn, .hero-actions .btn, .quick-action, .quick-owner a):active {
+    .dashboard-motion[data-motion="on"] :is(a, button:enabled):focus-visible svg {
+        transform: rotate(-6deg);
+    }
+    .dashboard-motion[data-motion="on"] :is(.head-btn, .hero-actions .btn, .quick-action, .quick-owner a, button:enabled):active {
         transform: scale(.98);
     }
 }
-
 .dashboard-motion.motion-page-hidden *,
 .dashboard-motion.motion-page-hidden *::before,
 .dashboard-motion.motion-page-hidden *::after {
     animation-play-state: paused !important;
+    transition: none !important;
 }
-
 .dashboard-motion[data-motion="off"] *,
 .dashboard-motion[data-motion="off"] *::before,
 .dashboard-motion[data-motion="off"] *::after {
@@ -139,7 +127,17 @@
     transition: none !important;
     transform: none !important;
 }
-
+html[data-theme="dark"] .dashboard-motion .stat-icon {
+    background: var(--surface-soft);
+    color: var(--menu-section);
+}
+html[data-theme="dark"] .dashboard-glow { opacity: .7; }
+html[data-theme="dark"] .dashboard-orbit { opacity: .75; }
+@media (max-width: 600px) {
+    .dashboard-motion :is(.dashboard-head, .owner-hero) { padding: 22px 18px; }
+    .dashboard-glow { width: 280px; height: 280px; top: -100px; }
+    .dashboard-orbit { width: 190px; height: 190px; top: -85px; }
+}
 @media (prefers-reduced-motion: reduce) {
     .dashboard-motion *,
     .dashboard-motion *::before,
@@ -149,17 +147,17 @@
         transform: none !important;
     }
 }
-
+@media print {
+    .dashboard-motion .dashboard-decoration,
+    .dashboard-motion .dashboard-motion-toggle { display: none !important; }
+    .dashboard-motion * { animation: none !important; transition: none !important; transform: none !important; }
+}
 @keyframes dashboard-arrive {
-    from { opacity: 0; transform: translateY(14px); }
+    from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes dashboard-glow {
-    from { transform: translate(-18px, -8px) scale(.95); }
-    to { transform: translate(24px, 18px) scale(1.12); }
+    from { transform: translate(-12px,-6px) scale(.96); }
+    to { transform: translate(18px,12px) scale(1.08); }
 }
-
-@keyframes dashboard-orbit {
-    to { transform: rotate(360deg); }
-}
+@keyframes dashboard-orbit { to { transform: rotate(360deg); } }

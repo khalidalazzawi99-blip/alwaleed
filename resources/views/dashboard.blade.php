@@ -365,6 +365,7 @@
 
     {{-- Header --}}
     <div class="dashboard-head">
+        @include('partials.dashboard-motion-decoration')
 
         <div>
             <h1>
