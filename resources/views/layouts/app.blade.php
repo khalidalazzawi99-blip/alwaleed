@@ -2,6 +2,7 @@
 <html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>Al Waleed</title>
 
@@ -1596,6 +1597,11 @@ html[dir="ltr"] .menu-section::after{
                 class="{{ request()->is('cashbox') ? 'active' : '' }}"
             >
                 <svg class="icon" viewBox="0 0 24 24"><path d="M4 6h14a2 2 0 0 1 2 2v10H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12"/><path d="M16 11h4"/></svg> {{ __('messages.cashbox') }}
+            </a>
+
+            <a href="{{ route('banks.index') }}" class="{{ request()->is('banks*') ? 'active' : '' }}">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 9 9-6 9 6H3Z"/><path d="M5 10v8M10 10v8M14 10v8M19 10v8M3 21h18M4 18h16"/></svg>
+                {{ __('messages.banks') }}
             </a>
 
             <a

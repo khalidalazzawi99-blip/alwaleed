@@ -9,32 +9,68 @@ use App\Models\Receipt;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CashboxController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $companyId = auth()->user()->company_id;
-        $cashboxes = Cashbox::with('customers')->where('company_id', $companyId)->orderBy('id')->get();
+        $banksOnly = $request->routeIs('banks.index');
+        $cashboxes = Cashbox::with('customers')->where('company_id', $companyId)
+            ->when($banksOnly, fn ($query) => $query->where('account_type', 'bank'))->orderBy('id')->get();
+        $request->validate(['cashbox_id' => ['nullable', 'integer']]);
+        $selectedId = $request->filled('cashbox_id') ? $request->integer('cashbox_id') : null;
+        abort_if($selectedId && !$cashboxes->contains('id', $selectedId), 404);
+        $visibleCashboxes = $selectedId ? $cashboxes->where('id', $selectedId) : $cashboxes;
+        $filterAccounts = fn ($query) => $query->when($banksOnly || $selectedId,
+            fn ($query) => $query->whereIn('cashbox_id', $visibleCashboxes->pluck('id')));
+        $receipts = $filterAccounts(Receipt::with(['cashbox', 'customer', 'supplier'])->where('company_id', $companyId))->latest()->get();
+        $payments = $filterAccounts(Payment::with(['cashbox', 'customer', 'supplier'])->where('company_id', $companyId))->latest()->get();
+        $cashboxLogs = $filterAccounts(CashboxLog::with('cashbox')->where('company_id', $companyId))
+            ->whereIn('type', ['إيداع مباشر', 'سحب مباشر'])->latest()->get();
+
         return view('cashbox.index', [
+            'banksOnly' => $banksOnly,
             'cashboxes' => $cashboxes,
+            'visibleCashboxes' => $visibleCashboxes,
+            'selectedId' => $selectedId,
             'customers' => Customer::where('company_id', $companyId)->orderBy('name')->get(),
-            'balance' => $cashboxes->sum('balance'),
-            'receipts' => Receipt::with('cashbox')->where('company_id', $companyId)->latest()->get(),
-            'payments' => Payment::with('cashbox')->where('company_id', $companyId)->latest()->get(),
-            'cashboxLogs' => CashboxLog::with('cashbox')->where('company_id', $companyId)
-                ->whereIn('type', ['إيداع مباشر', 'سحب مباشر'])->latest()->get(),
-            'totalReceipts' => Receipt::where('company_id', $companyId)->sum('amount')
-                + CashboxLog::where('company_id', $companyId)->where('type', 'إيداع مباشر')->sum('amount'),
-            'totalPayments' => Payment::where('company_id', $companyId)->sum('amount')
-                + CashboxLog::where('company_id', $companyId)->where('type', 'سحب مباشر')->sum('amount'),
+            'balance' => $visibleCashboxes->sum('balance'),
+            'receipts' => $receipts,
+            'payments' => $payments,
+            'cashboxLogs' => $cashboxLogs,
+            'totalReceipts' => $receipts->sum('amount') + $cashboxLogs->where('type', 'إيداع مباشر')->sum('amount'),
+            'totalPayments' => $payments->sum('amount') + $cashboxLogs->where('type', 'سحب مباشر')->sum('amount'),
         ]);
+    }
+
+    public function storeBank(Request $request)
+    {
+        $request->merge(['account_type' => 'bank', 'bank_name' => $request->input('name')]);
+        return $this->store($request);
+    }
+
+    public function updateBank(Request $request, Cashbox $cashbox)
+    {
+        $this->ensureOwned($cashbox);
+        abort_unless($cashbox->account_type === 'bank', 404);
+        $request->merge(['account_type' => 'bank', 'bank_name' => $request->input('name')]);
+        return $this->update($request, $cashbox);
+    }
+
+    public function bankTransaction(Request $request, Cashbox $cashbox)
+    {
+        $this->ensureOwned($cashbox);
+        abort_unless($cashbox->account_type === 'bank', 404);
+        return $this->transaction($request, $cashbox);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate($this->cashboxRules(true));
+        $data['balance'] ??= 0;
         $customerIds = $this->ownedCustomerIds($data['customer_ids'] ?? []);
         unset($data['customer_ids']);
         $data['account_type'] ??= 'cash';
@@ -44,7 +80,7 @@ class CashboxController extends Controller
         }
         $cashbox = Cashbox::create($data + ['company_id' => auth()->user()->company_id, 'is_active' => true]);
         $cashbox->customers()->sync($customerIds);
-        return back()->with('success', 'تمت إضافة الصندوق');
+        return back()->with('success', __('messages.account_created'));
     }
 
     public function update(Request $request, Cashbox $cashbox)
@@ -60,7 +96,7 @@ class CashboxController extends Controller
         }
         $cashbox->update($data + ['is_active' => $request->boolean('is_active')]);
         $cashbox->customers()->sync($customerIds);
-        return back()->with('success', 'تم تحديث الصندوق');
+        return back()->with('success', __('messages.account_updated'));
     }
 
     public function destroy(Cashbox $cashbox)
@@ -95,6 +131,7 @@ class CashboxController extends Controller
             $lockedCashbox = Cashbox::whereKey($cashbox->id)
                 ->where('company_id', auth()->user()->company_id)
                 ->lockForUpdate()->firstOrFail();
+            abort_unless($lockedCashbox->is_active, 422, __('messages.account_inactive'));
             $amount = (float) $data['amount'];
 
             if ($data['type'] === 'withdrawal' && $amount > (float) $lockedCashbox->balance) {
@@ -108,6 +145,7 @@ class CashboxController extends Controller
                 : $lockedCashbox->decrement('balance', $amount);
             $lockedCashbox->refresh();
 
+            $voucher = null;
             if ($customer) {
                 $voucherData = [
                     'company_id' => $lockedCashbox->company_id,
@@ -116,8 +154,8 @@ class CashboxController extends Controller
                     'amount' => $amount,
                     'notes' => $data['notes'] ?? null,
                 ];
-                $reference = 'BANK-'.now()->format('YmdHis').'-'.$lockedCashbox->id.'-'.$customer->id;
-                $data['type'] === 'deposit'
+                $reference = 'BANK-'.Str::ulid();
+                $voucher = $data['type'] === 'deposit'
                     ? Receipt::create($voucherData + ['receipt_no' => $reference, 'receipt_date' => now()->toDateString()])
                     : Payment::create($voucherData + ['payment_no' => $reference, 'payment_date' => now()->toDateString()]);
             }
@@ -125,8 +163,11 @@ class CashboxController extends Controller
             CashboxLog::create([
                 'company_id' => $lockedCashbox->company_id,
                 'cashbox_id' => $lockedCashbox->id,
-                'type' => $data['type'] === 'deposit' ? 'إيداع مباشر' : 'سحب مباشر',
-                'reference_no' => 'DIRECT-'.now()->format('YmdHis').'-'.$lockedCashbox->id,
+                // Linked operations are already included in receipt/payment totals.
+                'type' => $customer
+                    ? ($data['type'] === 'deposit' ? 'قبض' : 'صرف')
+                    : ($data['type'] === 'deposit' ? 'إيداع مباشر' : 'سحب مباشر'),
+                'reference_no' => $voucher ? ($voucher->receipt_no ?? $voucher->payment_no) : 'TXN-'.Str::ulid(),
                 'person_name' => $customer?->name ?? auth()->user()->name,
                 'amount' => $amount,
                 'balance_after' => $lockedCashbox->balance,
@@ -135,8 +176,8 @@ class CashboxController extends Controller
         });
 
         return back()->with('success', $data['type'] === 'deposit'
-            ? 'تم الإيداع في الصندوق بنجاح'
-            : 'تم السحب من الصندوق بنجاح');
+            ? __('messages.deposit_saved')
+            : __('messages.withdrawal_saved'));
     }
 
     private function cashboxRules(bool $creating): array

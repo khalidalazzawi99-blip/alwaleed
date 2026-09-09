@@ -44,12 +44,7 @@
 
 <br><br>
 
-<label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('الصندوق') }}</label>
-<select name="cashbox_id" required>
-@foreach($cashboxes as $cashbox)
-<option value="{{ $cashbox->id }}" @selected((int) old('cashbox_id', request('cashbox_id', $cashboxes->first()?->id)) === $cashbox->id)>{{ $cashbox->name }} — {{ number_format($cashbox->balance, 2) }}</option>
-@endforeach
-</select>
+<x-account-select :cashboxes="$cashboxes" />
 
 <br><br>
 
@@ -83,7 +78,7 @@
 <th>{{ __('رقم الوصل') }}</th>
 <th>{{ __('التاريخ') }}</th>
 <th>{{ __('messages.party') }}</th>
-<th>{{ __('الصندوق') }}</th>
+<th>{{ __('messages.cashbox_or_bank') }}</th>
 <th>{{ __('المبلغ') }}</th>
 <th>{{ __('الملاحظات') }}</th>
 <th>{{ __('طباعة') }}</th>

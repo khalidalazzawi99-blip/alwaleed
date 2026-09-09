@@ -43,12 +43,7 @@
 
 <br><br>
 
-<label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('الصندوق') }}</label>
-<select name="cashbox_id" required>
-@foreach($cashboxes as $cashbox)
-<option value="{{ $cashbox->id }}" @selected((int) old('cashbox_id', $payment->cashbox_id ?: $cashboxes->first()?->id) === $cashbox->id)>{{ $cashbox->name }} — {{ number_format($cashbox->balance, 2) }}</option>
-@endforeach
-</select>
+<x-account-select :cashboxes="$cashboxes" :selected="$payment->cashbox_id" />
 
 <br><br>
 

@@ -20,6 +20,8 @@ class Cashbox extends Model
         });
     }
 
+    protected $attributes = ['account_type' => 'cash'];
+
     protected $fillable = [
         'company_id',
         'name',

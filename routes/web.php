@@ -306,6 +306,11 @@ Route::middleware(['auth', 'subscription'])->group(function () {
 
         Route::post('/cashbox/{cashbox}/transactions', [CashboxController::class, 'transaction']);
 
+        Route::get('/banks', [CashboxController::class, 'index'])->name('banks.index');
+        Route::post('/banks', [CashboxController::class, 'storeBank'])->name('banks.store');
+        Route::put('/banks/{cashbox}', [CashboxController::class, 'updateBank'])->name('banks.update');
+        Route::post('/banks/{cashbox}/transactions', [CashboxController::class, 'bankTransaction'])->name('banks.transactions');
+
         Route::middleware('feature:multiple_cashboxes')->group(function () {
             Route::post('/cashbox', [CashboxController::class, 'store']);
             Route::put('/cashbox/{cashbox}', [CashboxController::class, 'update']);
