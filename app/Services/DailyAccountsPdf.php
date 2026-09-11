@@ -23,7 +23,9 @@ class DailyAccountsPdf
         $pdf->render();
         $canvas = $pdf->getDomPDF()->getCanvas();
         $font = $pdf->getDomPDF()->getFontMetrics()->getFont('DejaVu Sans', 'normal');
-        $canvas->page_text(400, 575, '{PAGE_NUM} / {PAGE_COUNT}', $font, 8, [0.45, 0.45, 0.45]);
+        $canvas->line(30, 570, 812, 570, [0.88, 0.84, 0.78], 0.5);
+        $canvas->page_text(30, 577, 'SIPPAR LIGHTS  |  DAILY ACCOUNTS', $font, 7, [0.55, 0.50, 0.44]);
+        $canvas->page_text(770, 577, '{PAGE_NUM} / {PAGE_COUNT}', $font, 8, [0.55, 0.50, 0.44]);
 
         return $pdf->download($service->filename('pdf'));
     }
