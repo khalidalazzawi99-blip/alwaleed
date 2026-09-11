@@ -6,6 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Company extends Model
 {
+    public function isSippar(): bool
+    {
+        return strcasecmp((string) $this->code, config('daily_accounts.company_code')) === 0;
+    }
+
+    public function dailyExpenses() { return $this->hasMany(DailyExpense::class); }
+    public function dailyExpenseParties() { return $this->hasMany(DailyExpenseParty::class); }
+
     protected $fillable = [
         'name',
         'code',

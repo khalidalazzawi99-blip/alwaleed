@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
+require __DIR__.'/daily_accounts.php';
+
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CustomerController;

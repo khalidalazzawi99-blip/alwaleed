@@ -1625,6 +1625,14 @@ html[dir="ltr"] .menu-section::after{
                 <svg class="icon" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg> {{ __('messages.reports') }}
             </a>
 
+            @can('sippar.daily_accounts.view')
+                <div class="menu-section">أضواء سيبار</div>
+                <a href="{{ route('sippar.daily-accounts.index') }}" class="{{ request()->is('sippar/daily-accounts*') ? 'active' : '' }}">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2M8 18h2"/></svg>
+                    الحسابات اليومية
+                </a>
+            @endcan
+
             @php($activeCompany = auth()->user()->company)
             @if($activeCompany)
                 @foreach(['inventory','sales','purchases','payroll','projects','installments'] as $featureKey)

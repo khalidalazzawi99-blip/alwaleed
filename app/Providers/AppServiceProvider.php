@@ -42,6 +42,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        foreach (['view', 'create', 'update', 'delete', 'export'] as $action) {
+            \Illuminate\Support\Facades\Gate::define('sippar.daily_accounts.'.$action, function (User $user): bool {
+                return in_array($user->role, ['admin', 'accountant'], true)
+                    && $user->company?->isSippar()
+                    && $user->company->status === 'active'
+                    && (!$user->company->subscription_end || now()->startOfDay()->lte($user->company->subscription_end));
+            });
+        }
+
         View::composer('*', function ($view) {
             $companyId = auth()->user()?->company_id;
             static $currencies = [];
@@ -54,6 +63,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         foreach ([
+            \App\Models\DailyExpense::class,
+            \App\Models\DailyExpenseParty::class,
             Account::class,
             Cashbox::class,
             Company::class,
