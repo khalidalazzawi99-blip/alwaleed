@@ -23,7 +23,7 @@ class DocumentExportService
         ) ?? $html;
 
         return Pdf::setOptions([
-            'defaultFont' => 'DejaVu Sans',
+            'defaultFont' => 'Tajawal',
             'defaultMediaType' => 'print',
             'isRemoteEnabled' => false,
             'isHtml5ParserEnabled' => true,
