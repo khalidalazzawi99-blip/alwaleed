@@ -1627,7 +1627,7 @@ html[dir="ltr"] .menu-section::after{
 
             @can('sippar.daily_accounts.view')
                 <div class="menu-section">أضواء سيبار</div>
-                <a href="{{ route('sippar.daily-accounts.index') }}" class="{{ request()->is('sippar/daily-accounts*') ? 'active' : '' }}">
+                <a href="{{ route('sippar.daily-accounts.index', [], false) }}" class="{{ request()->is('sippar/daily-accounts*') ? 'active' : '' }}">
                     <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2M8 18h2"/></svg>
                     الحسابات اليومية
                 </a>
@@ -1744,7 +1744,7 @@ html[dir="ltr"] .menu-section::after{
             <svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
 
-        <form class="search-wrap" action="{{ route('search.index') }}" method="GET" id="globalSearchForm">
+        <form class="search-wrap" action="{{ route('search.index', [], false) }}" method="GET" id="globalSearchForm">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
             <input
                 class="search-box"
@@ -1877,7 +1877,7 @@ globalSearchInput.addEventListener('input', function () {
         searchRequest = new AbortController();
 
         try {
-            const response = await fetch(`{{ route('search.suggestions') }}?q=${encodeURIComponent(term)}`, {
+            const response = await fetch(`{{ route('search.suggestions', [], false) }}?q=${encodeURIComponent(term)}`, {
                 headers: {'Accept': 'application/json'},
                 signal: searchRequest.signal
             });
@@ -1921,7 +1921,7 @@ function notificationPermissionButton() {
 
 async function loadNotifications(showDesktop = true) {
     try {
-        const response = await fetch('{{ route('notifications.index') }}', {headers:{'Accept':'application/json'}});
+        const response = await fetch('{{ route('notifications.index', [], false) }}', {headers:{'Accept':'application/json'}});
         if (!response.ok) return;
         const data = await response.json();
         notificationItems = data.notifications;
@@ -1979,7 +1979,7 @@ notificationList.addEventListener('click', async (event) => {
 });
 
 markNotificationsRead.addEventListener('click', async () => {
-    await fetch('{{ route('notifications.read-all') }}', {method:'POST',headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}});
+    await fetch('{{ route('notifications.read-all', [], false) }}', {method:'POST',headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}});
     await loadNotifications(false);
 });
 

@@ -7,12 +7,47 @@ use App\Models\DailyExpense;
 use App\Models\DailyExpenseParty;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
 class DailyAccountsTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_forwarded_https_headers_are_trusted_behind_render_proxy(): void
+    {
+        Route::middleware('web')->get('/_proxy-scheme-test', fn () => request()->getScheme().'|'.url('/probe'));
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.10'])
+            ->withHeaders([
+                'X-Forwarded-Proto' => 'https',
+                'X-Forwarded-Host' => 'secure.example.test',
+                'X-Forwarded-Port' => '443',
+            ])
+            ->get('/_proxy-scheme-test')
+            ->assertOk()
+            ->assertSeeText('https|https://secure.example.test/probe');
+    }
+
+    public function test_daily_account_form_actions_are_relative_and_never_http(): void
+    {
+        [$sippar, $user] = $this->companyUser('SIPPAR', 'admin');
+        $party = $this->party($sippar, 'خالد');
+        $expense = $this->expense($sippar, $party, 100);
+
+        $index = $this->actingAs($user)->get('/sippar/daily-accounts?year=2026&currency=IQD')->assertOk();
+        $index->assertSee('action="/sippar/daily-accounts"', false)
+            ->assertSee('action="/sippar/daily-accounts/parties"', false)
+            ->assertSee('action="/sippar/daily-accounts/'.$expense->id.'"', false)
+            ->assertDontSee('action="http://', false);
+
+        $this->actingAs($user)
+            ->get('/sippar/daily-accounts/'.$expense->id.'/edit')
+            ->assertOk()
+            ->assertSee('action="/sippar/daily-accounts/'.$expense->id.'"', false)
+            ->assertDontSee('action="http://', false);
+    }
 
     public function test_only_an_authorized_sippar_user_can_open_daily_accounts(): void
     {

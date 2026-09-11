@@ -9,12 +9,12 @@
 <div class="da-actions">
 @can('sippar.daily_accounts.create')<button type="button" class="da-primary" data-dialog="expense-dialog">+ إضافة مصروف</button>@endcan
 @can('sippar.daily_accounts.export')
-<a class="da-btn" href="{{ route('sippar.daily-accounts.excel', $filters) }}">تصدير Excel</a>
-<a class="da-btn" href="{{ route('sippar.daily-accounts.pdf', $filters) }}">تصدير PDF</a>
+<a class="da-btn" href="{{ route('sippar.daily-accounts.excel', $filters, false) }}">تصدير Excel</a>
+<a class="da-btn" href="{{ route('sippar.daily-accounts.pdf', $filters, false) }}">تصدير PDF</a>
 @endcan
 @can('sippar.daily_accounts.create')<button type="button" data-dialog="party-dialog">+ إضافة جهة / شخص</button>@endcan
 </div>
-<form class="da-panel" action="{{ route('sippar.daily-accounts.index') }}" method="get">
+<form class="da-panel" action="{{ route('sippar.daily-accounts.index', [], false) }}" method="get">
 <h2>تصفية الحركات</h2>
 <div class="da-grid">
 <label>من تاريخ<input type="date" name="from" value="{{ $filters['from'] ?? '' }}"></label>
@@ -27,7 +27,7 @@
 <label>الحد الأدنى للمبلغ<input type="number" name="min_amount" min="0" step="0.01" value="{{ $filters['min_amount'] ?? '' }}"></label>
 <label>الحد الأعلى للمبلغ<input type="number" name="max_amount" min="0" step="0.01" value="{{ $filters['max_amount'] ?? '' }}"></label>
 </div>
-<div class="da-actions"><button type="submit" class="da-primary">تطبيق</button><a class="da-btn" href="{{ route('sippar.daily-accounts.index') }}">إعادة تعيين</a></div>
+<div class="da-actions"><button type="submit" class="da-primary">تطبيق</button><a class="da-btn" href="{{ route('sippar.daily-accounts.index', [], false) }}">إعادة تعيين</a></div>
 <p>جميع المؤشرات أدناه تخص السنة والعملة والفلاتر المحددة.</p>
 </form>
 <div class="da-stats">
@@ -40,7 +40,7 @@
 </div>
 <div class="da-two">
 <section class="da-panel"><h2>المصروف حسب الشخص</h2><div class="da-subscroll"><table><thead><tr><th>الشخص</th><th>الإجمالي</th></tr></thead><tbody>
-@forelse($summary['people'] as $person)<tr><td><a href="{{ route('sippar.daily-accounts.index', array_replace($filters, ['party_id' => $person->party_id])) }}">{{ $person->party->name }}</a></td><td class="da-money">{{ $money($person->total) }}</td></tr>
+@forelse($summary['people'] as $person)<tr><td><a href="{{ route('sippar.daily-accounts.index', array_replace($filters, ['party_id' => $person->party_id]), false) }}">{{ $person->party->name }}</a></td><td class="da-money">{{ $money($person->total) }}</td></tr>
 @empty<tr><td colspan="2" class="da-empty">لا توجد مصروفات</td></tr>@endforelse
 </tbody></table></div></section>
 <section class="da-panel"><h2>المصروف حسب الشهر · {{ $filters['year'] }}</h2><div class="da-subscroll"><table><thead><tr><th>الشهر</th><th>الإجمالي</th></tr></thead><tbody>
@@ -55,8 +55,8 @@
 <div class="da-table-wrap"><table class="da-ledger"><thead><tr><th>التاريخ</th><th>اليوم</th><th>المبلغ المصروف</th><th>الجهة / الشخص</th><th>الملاحظات</th><th>رقم الشهر</th><th>الإجراءات</th></tr></thead><tbody>
 @forelse($expenses as $row)
 <tr><td>{{ $row->expense_date->format('Y-m-d') }}</td><td>{{ $row->expense_date->locale('ar')->translatedFormat('l') }}</td><td class="da-money">{{ $money($row->amount) }}</td><td>{{ $row->party->name }}</td><td class="da-note">{{ $row->notes ?: '—' }}</td><td>{{ $row->expense_date->month }}</td><td><div class="da-row-actions">
-@can('sippar.daily_accounts.update')<a class="da-btn" href="{{ route('sippar.daily-accounts.edit', $row->id) }}">تعديل</a>@endcan
-@can('sippar.daily_accounts.delete')<form method="post" action="{{ route('sippar.daily-accounts.destroy', $row->id) }}" data-confirm-delete>@csrf @method('DELETE')<button type="submit" class="da-danger">حذف</button></form>@endcan
+@can('sippar.daily_accounts.update')<a class="da-btn" href="{{ route('sippar.daily-accounts.edit', $row->id, false) }}">تعديل</a>@endcan
+@can('sippar.daily_accounts.delete')<form method="post" action="{{ route('sippar.daily-accounts.destroy', $row->id, false) }}" data-confirm-delete>@csrf @method('DELETE')<button type="submit" class="da-danger">حذف</button></form>@endcan
 </div></td></tr>
 @empty<tr><td colspan="7" class="da-empty">لا توجد حركات مالية لشركة سيبار ضمن الفترة المحددة</td></tr>@endforelse
 </tbody></table></div>
@@ -65,15 +65,15 @@
 <div>@if($expenses->previousPageUrl())<a class="da-btn" href="{{ $expenses->previousPageUrl() }}">السابق</a>@endif <span>{{ $expenses->currentPage() }} / {{ $expenses->lastPage() }}</span> @if($expenses->hasMorePages())<a class="da-btn" href="{{ $expenses->nextPageUrl() }}">التالي</a>@endif</div>
 </nav></section>
 @can('sippar.daily_accounts.create')
-<dialog id="expense-dialog" class="da-dialog"><h2>إضافة مصروف</h2><p>أضواء سيبار</p><form action="{{ route('sippar.daily-accounts.store') }}" method="post">@csrf
+<dialog id="expense-dialog" class="da-dialog"><h2>إضافة مصروف</h2><p>أضواء سيبار</p><form action="{{ route('sippar.daily-accounts.store', [], false) }}" method="post">@csrf
 @include('daily_accounts._form')
 @if($parties->where('is_active', true)->isEmpty())<p>أضف جهة / شخص أولاً من زر إضافة جهة.</p>@endif
 <div class="da-actions"><button type="submit" class="da-primary">حفظ المصروف</button><button type="button" data-close-dialog>إلغاء</button></div>
 </form></dialog>
-<dialog id="party-dialog" class="da-dialog"><h2>إضافة جهة / شخص</h2><form method="post" action="{{ route('sippar.daily-accounts.parties.store') }}">@csrf<label>الاسم<input name="name" required maxlength="150" value="{{ old('name') }}"></label><div class="da-actions"><button type="submit" class="da-primary">حفظ الجهة</button><button type="button" data-close-dialog>إلغاء</button></div></form></dialog>
+<dialog id="party-dialog" class="da-dialog"><h2>إضافة جهة / شخص</h2><form method="post" action="{{ route('sippar.daily-accounts.parties.store', [], false) }}">@csrf<label>الاسم<input name="name" required maxlength="150" value="{{ old('name') }}"></label><div class="da-actions"><button type="submit" class="da-primary">حفظ الجهة</button><button type="button" data-close-dialog>إلغاء</button></div></form></dialog>
 @endcan
 </div>
-<script src="{{ asset('vendor/chartjs/chart.umd.min.js') }}"></script>
+<script src="/vendor/chartjs/chart.umd.min.js"></script>
 <script>
 (() => {
 document.querySelectorAll('[data-dialog]').forEach(button => button.addEventListener('click', () => document.getElementById(button.dataset.dialog).showModal()));

@@ -1,5 +1,10 @@
 <?php
 
+use App\Http\Middleware\AuthenticateCompanyApiToken;
+use App\Http\Middleware\EnsureFeatureEnabled;
+use App\Http\Middleware\RoleMiddleware;
+use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\SubscriptionMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,6 +21,20 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
 
         /*
+        | Render terminates TLS before forwarding requests to the container.
+        | Trust the platform proxy and its standard forwarded headers so Laravel
+        | preserves the original HTTPS scheme when generating URLs.
+        */
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+                | Request::HEADER_X_FORWARDED_PREFIX,
+        );
+
+        /*
         |--------------------------------------------------------------------------
         | Middleware Aliases
         |--------------------------------------------------------------------------
@@ -23,21 +42,16 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
 
-            'role' =>
-                \App\Http\Middleware\RoleMiddleware::class,
+            'role' => RoleMiddleware::class,
 
-            'subscription' =>
-                \App\Http\Middleware\SubscriptionMiddleware::class,
+            'subscription' => SubscriptionMiddleware::class,
 
-            'locale' =>
-                \App\Http\Middleware\SetLocale::class,
+            'locale' => SetLocale::class,
 
-            'feature' =>
-                \App\Http\Middleware\EnsureFeatureEnabled::class,
-            'company.token' => \App\Http\Middleware\AuthenticateCompanyApiToken::class,
+            'feature' => EnsureFeatureEnabled::class,
+            'company.token' => AuthenticateCompanyApiToken::class,
 
         ]);
-
 
         /*
         |--------------------------------------------------------------------------
@@ -51,7 +65,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(
             append: [
-                \App\Http\Middleware\SetLocale::class,
+                SetLocale::class,
             ]
         );
 
@@ -60,8 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
 
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) =>
-                $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*'),
         );
 
     })
