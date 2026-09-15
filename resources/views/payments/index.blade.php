@@ -91,7 +91,7 @@
 <td>{{ $payment->payment_no }}</td>
 <td>{{ $payment->payment_date }}</td>
 <td>{{ $payment->party?->name ?? '-' }} <small>({{ $payment->party_type === 'customer' ? __('messages.customer') : __('messages.supplier') }})</small></td>
-<td>{{ $payment->cashbox?->name ?? __('الصندوق الرئيسي') }}</td>
+<td>{{ $payment->cashbox?->name ?? __('حساب مالي قديم غير محدد') }}</td>
 <td style="color:#DC2626;font-weight:800">{{ number_format($payment->amount,2) }}</td>
 <td>{{ $payment->notes }}</td>
 <td>

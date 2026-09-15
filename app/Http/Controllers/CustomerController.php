@@ -8,6 +8,7 @@ use App\Models\Receipt;
 use App\Models\Payment;
 use App\Models\ExternalInvoice;
 use App\Models\Setting;
+use App\Models\Cashbox;
 use App\Exports\ArrayExport;
 use App\Services\DocumentExportService;
 use Maatwebsite\Excel\Facades\Excel;
@@ -62,6 +63,8 @@ class CustomerController extends Controller
     {
         $this->ensureCustomerBelongsToCompany($customer);
         $data = $this->statementData($request, $customer);
+        $data['cashboxes'] = Cashbox::operational()->where('company_id', $customer->company_id)
+            ->where('is_active', true)->orderBy('id')->get();
         $data['externalInvoicesPage'] = ExternalInvoice::where('company_id', $customer->company_id)
             ->where('customer_id', $customer->id)->latest('invoice_date')->latest('id')->paginate(15)->withQueryString();
         return view('customers.show', $data);

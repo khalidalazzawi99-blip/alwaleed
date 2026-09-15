@@ -26,12 +26,12 @@ class Receipt extends Model
 
     public function cashbox()
     {
-        return $this->belongsTo(Cashbox::class);
+        return $this->belongsTo(Cashbox::class)->withTrashed();
     }
 
     public function customer()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Customer::class)->withTrashed();
     }
 
     public function supplier()

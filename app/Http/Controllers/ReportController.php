@@ -88,7 +88,7 @@ class ReportController extends Controller
 
             'totalPayments' => $payments->sum('amount'),
 
-            'balance' => Cashbox::where('company_id', $companyId)->sum('balance'),
+            'balance' => Cashbox::operational()->where('company_id', $companyId)->sum('balance'),
 
             'from' => $from,
 
@@ -162,7 +162,7 @@ class ReportController extends Controller
 
             'totalPayments' => $payments->sum('amount'),
 
-            'balance' => Cashbox::where('company_id', $companyId)->sum('balance'),
+            'balance' => Cashbox::operational()->where('company_id', $companyId)->sum('balance'),
 
             'from' => $from,
 
@@ -234,7 +234,7 @@ class ReportController extends Controller
             'payments' => $payments,
             'totalReceipts' => $receipts->sum('amount'),
             'totalPayments' => $payments->sum('amount'),
-            'balance' => Cashbox::where('company_id', $companyId)->sum('balance'),
+            'balance' => Cashbox::operational()->where('company_id', $companyId)->sum('balance'),
             'from' => $from,
             'to' => $to,
         ];

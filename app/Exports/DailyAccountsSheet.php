@@ -35,7 +35,7 @@ class DailyAccountsSheet extends DefaultValueBinder implements Export, FromGener
     public function headings(): array
     {
         return match ($this->kind) {
-            'daily' => ['التاريخ', 'اليوم', 'المبلغ', 'الجهة / الشخص', 'الملاحظات', 'رقم الشهر'],
+            'daily' => ['التاريخ', 'اليوم', 'المبلغ', 'الجهة / الشخص', 'الملاحظات', 'رقم الشهر', 'العملة'],
             'summary' => ['المؤشر', 'القيمة'],
             'people' => ['الشخص', 'الإجمالي'],
             'months' => ['الشهر', 'الإجمالي'],
@@ -48,11 +48,12 @@ class DailyAccountsSheet extends DefaultValueBinder implements Export, FromGener
         if ($this->kind === 'daily') {
             foreach ($this->service->query()->with('party')->orderBy('expense_date')->orderBy('id')->lazy(500) as $row) {
                 yield [$row->expense_date->format('Y-m-d'), $row->expense_date->locale('ar')->translatedFormat('l'),
-                    (float) $row->amount, $row->party->name, $row->notes ?? '', (int) $row->expense_date->month];
+                    (float) $row->amount, $row->party->name, $row->notes ?? '', (int) $row->expense_date->month, $row->currency];
             }
-            yield ['الإجمالي', '', (float) $s['total'], '', '', ''];
+            yield ['الإجمالي', '', (float) $s['total_iqd'], '', '', '', 'USD: '.(float) $s['total_usd']];
         } elseif ($this->kind === 'summary') {
-            yield ['إجمالي المصروف', (float) $s['total']];
+            yield ['إجمالي المصروف IQD', (float) $s['total_iqd']];
+            yield ['إجمالي المصروف USD', (float) $s['total_usd']];
             yield ['عدد الحركات', $s['count']];
             yield ['متوسط المصروف', (float) $s['average']];
             yield ['أعلى شخص صرف', $s['top_person']?->party?->name ?? '—'];
@@ -86,7 +87,7 @@ class DailyAccountsSheet extends DefaultValueBinder implements Export, FromGener
     public function styles(Worksheet $sheet): array
     {
         $last = $sheet->getHighestRow();
-        $column = $this->kind === 'daily' ? 'F' : 'B';
+        $column = $this->kind === 'daily' ? 'G' : 'B';
         $sheet->setRightToLeft(true);
         foreach ([1 => 'أضواء سيبار', 2 => 'الحسابات اليومية — '.$this->title(),
             3 => 'الفترة: '.$this->report['period'].' | '.$this->report['currency'],
@@ -107,11 +108,11 @@ class DailyAccountsSheet extends DefaultValueBinder implements Export, FromGener
         $sheet->getRowDimension(6)->setRowHeight(28);
         $format = '#,##0.## "'.$this->report['currency'].'"';
         if ($this->kind === 'daily') {
-            foreach (['A' => 18, 'B' => 18, 'C' => 25, 'D' => 28, 'E' => 55, 'F' => 13] as $col => $width) {
+            foreach (['A' => 18, 'B' => 18, 'C' => 25, 'D' => 28, 'E' => 55, 'F' => 13, 'G' => 18] as $col => $width) {
                 $sheet->getColumnDimension($col)->setWidth($width);
             }
             $sheet->getStyle('C7:C'.$last)->getNumberFormat()->setFormatCode($format);
-            $sheet->getStyle('A'.$last.':F'.$last)->getFont()->setBold(true);
+            $sheet->getStyle('A'.$last.':G'.$last)->getFont()->setBold(true);
         } else {
             $sheet->getColumnDimension('A')->setWidth(45);
             $sheet->getColumnDimension('B')->setWidth(40);

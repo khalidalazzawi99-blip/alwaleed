@@ -125,10 +125,10 @@ class CompanyFeatureModulesTest extends TestCase
 
         $secondary = Cashbox::where('company_id', $company->id)->where('name', 'الفرعي')->firstOrFail();
         $this->actingAs($user)->delete('/cashbox/'.$secondary->id)->assertRedirect();
-        $this->assertDatabaseMissing('cashboxes', ['id' => $secondary->id]);
+        $this->assertSoftDeleted('cashboxes', ['id' => $secondary->id]);
 
-        $this->actingAs($user)->delete('/cashbox/'.$main->id)->assertStatus(422);
-        $this->assertDatabaseHas('cashboxes', ['id' => $main->id]);
+        $this->actingAs($user)->delete('/cashbox/'.$main->id)->assertRedirect();
+        $this->assertSoftDeleted('cashboxes', ['id' => $main->id]);
     }
 
     private function companyUser(string $code = 'TEST'): array

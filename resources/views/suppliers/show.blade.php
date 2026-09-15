@@ -8,6 +8,7 @@
     $resetUrl = url('/suppliers/'.$supplier->id);
     $receiptUrl = url('/receipts?party_type=supplier&party_id='.$supplier->id);
     $paymentUrl = url('/payments?party_type=supplier&party_id='.$supplier->id);
+    $partyType = 'supplier';
 @endphp
 @include('statements.show')
 @endsection

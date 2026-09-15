@@ -6,6 +6,7 @@ use App\Models\Cashbox;
 use App\Models\CashboxLog;
 use App\Models\Payment;
 use App\Models\Receipt;
+use App\Models\DailyExpense;
 use Illuminate\Support\Collection;
 
 class CashboxStatementService
@@ -51,6 +52,8 @@ class CashboxStatementService
             ->where('cashbox_id', $cashbox->id)->get();
         $payments = Payment::with(['customer', 'supplier'])->where('company_id', $cashbox->company_id)
             ->where('cashbox_id', $cashbox->id)->get();
+        $dailyExpenses = DailyExpense::with('party')->where('company_id', $cashbox->company_id)
+            ->where('cashbox_id', $cashbox->id)->get();
         $logs = CashboxLog::where('company_id', $cashbox->company_id)->where('cashbox_id', $cashbox->id)
             ->whereIn('type', ['إيداع مباشر', 'سحب مباشر'])->get();
 
@@ -64,6 +67,11 @@ class CashboxStatementService
             $rows->push($this->row('payment', $payment->id, $payment->payment_date ?: $payment->created_at->toDateString(),
                 $payment->created_at->format('H:i:s'), $payment->payment_no, __('messages.paid'),
                 $payment->party?->name, $payment->notes, 0, $this->cents($payment->amount)));
+        }
+        foreach ($dailyExpenses as $expense) {
+            $rows->push($this->row('daily-expense', $expense->id, $expense->expense_date->toDateString(),
+                $expense->created_at->format('H:i:s'), 'DAILY-'.$expense->id, 'مصروف يومي',
+                $expense->party?->name, $expense->notes, 0, $this->cents($expense->amount)));
         }
         foreach ($logs as $log) {
             $incoming = $log->type === 'إيداع مباشر';

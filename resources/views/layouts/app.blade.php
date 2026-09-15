@@ -1089,6 +1089,13 @@ html[data-theme="dark"] .language-switch a.active{
     min-width:0;
 }
 
+.language-box .label .language-brand-mark{
+    width:28px;
+    height:28px;
+    object-fit:contain;
+    flex:0 0 28px;
+}
+
 .language-box .label strong{
     display:block;
     font-size:12px;
@@ -1486,7 +1493,7 @@ html[dir="ltr"] .menu-section::after{
 
 <div class="language-box">
     <div class="label">
-        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+        <img class="language-brand-mark" src="/logo.png" alt="شعار الوليد">
         <div>
             <strong>{{ __('messages.language') }}</strong>
             <span>{{ app()->getLocale() === 'ar' ? __('messages.arabic') : __('messages.english') }}</span>

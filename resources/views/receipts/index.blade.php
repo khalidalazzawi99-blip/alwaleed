@@ -91,7 +91,7 @@
 <td>{{ $receipt->receipt_no }}</td>
 <td>{{ $receipt->receipt_date }}</td>
 <td>{{ $receipt->party?->name ?? '-' }} <small>({{ $receipt->party_type === 'customer' ? __('messages.customer') : __('messages.supplier') }})</small></td>
-<td>{{ $receipt->cashbox?->name ?? __('الصندوق الرئيسي') }}</td>
+<td>{{ $receipt->cashbox?->name ?? __('حساب مالي قديم غير محدد') }}</td>
 <td style="color:#16A34A;font-weight:800">{{ number_format($receipt->amount,2) }}</td>
 <td>{{ $receipt->notes }}</td>
 <td>

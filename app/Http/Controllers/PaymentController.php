@@ -27,10 +27,7 @@ class PaymentController extends Controller
         $suppliers = Supplier::where('company_id', $companyId)
             ->orderBy('name')
             ->get();
-        $cashboxes = Cashbox::where('company_id', $companyId)->where('is_active', true)->orderBy('id')->get();
-        if ($cashboxes->isEmpty()) {
-            $cashboxes = collect([Cashbox::create(['company_id' => $companyId, 'name' => 'الصندوق الرئيسي', 'balance' => 0, 'is_active' => true])]);
-        }
+        $cashboxes = Cashbox::operational()->where('company_id', $companyId)->where('is_active', true)->orderBy('id')->get();
 
         $year = now()->year;
         $nextPaymentNumbers = $suppliers->mapWithKeys(fn ($party) => [
@@ -60,6 +57,7 @@ class PaymentController extends Controller
             'cashbox_id' => ['required', 'integer'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'notes' => ['nullable', 'string'],
+            'redirect_to' => ['nullable', 'in:party'],
         ]);
 
         $party = $this->findParty($request->party_type, $request->party_id, $companyId);
@@ -99,7 +97,11 @@ class PaymentController extends Controller
             ]);
         });
 
-        return redirect('/payments')
+        $redirect = $request->redirect_to === 'party'
+            ? '/'.$request->party_type.'s/'.$request->party_id
+            : '/payments';
+
+        return redirect($redirect)
             ->with('success', __('تم إضافة سند الصرف بنجاح'));
     }
 
@@ -113,7 +115,7 @@ class PaymentController extends Controller
             ->orderBy('name')
             ->get();
         $customers = Customer::where('company_id', $companyId)->orderBy('name')->get();
-        $cashboxes = Cashbox::where('company_id', $companyId)
+        $cashboxes = Cashbox::operational()->where('company_id', $companyId)
             ->where(fn ($query) => $query->where('is_active', true)->orWhereKey($payment->cashbox_id))
             ->orderBy('id')->get();
 
@@ -145,7 +147,7 @@ class PaymentController extends Controller
 
         DB::transaction(function () use ($companyId, $party, $request, $payment, $selectedCashbox) {
         $oldAmount = (float) $payment->amount;
-        $oldCashboxId = $payment->cashbox_id ?: Cashbox::where('company_id', $companyId)->orderBy('id')->value('id');
+        $oldCashboxId = $payment->cashbox_id;
 
         $partyOrYearChanged = $payment->party_type !== $request->party_type
             || (int) $payment->{$request->party_type.'_id'} !== (int) $party->id
@@ -163,7 +165,7 @@ class PaymentController extends Controller
                 : $payment->payment_no,
         ]);
 
-        $cashboxes = Cashbox::whereIn('id', array_unique([$oldCashboxId, $selectedCashbox->id]))->lockForUpdate()->get()->keyBy('id');
+        $cashboxes = Cashbox::withTrashed()->whereIn('id', array_filter(array_unique([$oldCashboxId, $selectedCashbox->id])))->lockForUpdate()->get()->keyBy('id');
         $oldCashbox = $cashboxes->get($oldCashboxId);
         $cashbox = $cashboxes->get($selectedCashbox->id);
         if ($oldCashboxId === $selectedCashbox->id) {
@@ -197,7 +199,7 @@ class PaymentController extends Controller
         $this->ensurePaymentBelongsToCompany($payment);
 
         DB::transaction(function () use ($companyId, $payment) {
-        $cashbox = Cashbox::whereKey($payment->cashbox_id)
+        $cashbox = Cashbox::withTrashed()->whereKey($payment->cashbox_id)
             ->where('company_id', $companyId)->lockForUpdate()->first();
         $cashbox?->increment('balance', $payment->amount);
         $cashbox?->refresh();
@@ -274,7 +276,7 @@ class PaymentController extends Controller
 
     private function findCashbox(int $id, int $companyId): Cashbox
     {
-        return Cashbox::whereKey($id)->where('company_id', $companyId)->where('is_active', true)->firstOrFail();
+        return Cashbox::operational()->whereKey($id)->where('company_id', $companyId)->where('is_active', true)->firstOrFail();
     }
 
     private function nextPaymentNumber(int $companyId, string $partyType, int $partyId, int $year): string

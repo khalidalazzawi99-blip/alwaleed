@@ -104,7 +104,7 @@
                     @if(old('form_key') === 'edit-'.$box->id && $errors->any())<div class="finance-notice error" role="alert">{{ $errors->first() }}</div>@endif
                     @include('cashbox._account-fields', ['accountType' => $isBank ? 'bank' : 'cash', 'editingBox' => $box])
                 </form>
-                @if(!$isBank && $cashboxes->count()>1 && (float)$box->balance===0.0)<form method="POST" action="{{ $accountBase }}" class="finance-dialog-body">@csrf @method('DELETE')<button class="finance-button secondary">{{ __('messages.delete') }}</button></form>@endif
+                @if((float)$box->balance===0.0)<form method="POST" action="{{ $accountBase }}" class="finance-dialog-body">@csrf @method('DELETE')<button class="finance-button secondary">{{ __('messages.delete') }}</button></form>@endif
             </dialog>
         @endif
     @endforeach

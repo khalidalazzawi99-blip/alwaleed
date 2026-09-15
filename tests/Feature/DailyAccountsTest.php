@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\Cashbox;
 use App\Models\DailyExpense;
 use App\Models\DailyExpenseParty;
 use App\Models\User;
@@ -72,21 +73,25 @@ class DailyAccountsTest extends TestCase
         [$sippar, $user] = $this->companyUser('SIPPAR', 'admin');
         [$other] = $this->companyUser('KUDIA', 'admin');
         $party = $this->party($sippar, 'ياسر');
+        $cashbox = Cashbox::create(['company_id' => $sippar->id, 'name' => 'مصرف بغداد', 'account_type' => 'bank', 'balance' => 1000000]);
 
         $this->actingAs($user)->post(route('sippar.daily-accounts.store'), [
             'expense_date' => '2026-06-03',
             'amount' => 500000,
             'currency' => 'IQD',
             'party_id' => $party->id,
+            'cashbox_id' => $cashbox->id,
             'notes' => 'مصاريف سلندر',
-        ])->assertRedirect();
+        ])->assertSessionHasNoErrors()->assertRedirect();
 
         $this->assertDatabaseHas('daily_expenses', [
             'company_id' => $sippar->id,
             'party_id' => $party->id,
+            'cashbox_id' => $cashbox->id,
             'created_by' => $user->id,
             'amount' => 500000,
         ]);
+        $this->assertSame(500000.0, (float) $cashbox->fresh()->balance);
 
         $this->actingAs($user)->post(route('sippar.daily-accounts.store'), [
             'company_id' => $other->id,
@@ -106,19 +111,22 @@ class DailyAccountsTest extends TestCase
         $otherParty = $this->party($other, 'Private party');
         $sipparExpense = $this->expense($sippar, $sipparParty, 100);
         $otherExpense = $this->expense($other, $otherParty, 999999);
+        $cashbox = Cashbox::create(['company_id' => $sippar->id, 'name' => 'مصرف بغداد', 'account_type' => 'bank', 'balance' => 1000]);
 
         $this->actingAs($user)->put(route('sippar.daily-accounts.update', $sipparExpense), [
             'expense_date' => '2026-06-10',
             'amount' => 250,
             'currency' => 'IQD',
             'party_id' => $sipparParty->id,
+            'cashbox_id' => $cashbox->id,
             'notes' => 'updated',
-        ])->assertRedirect();
+        ])->assertSessionHasNoErrors()->assertRedirect();
         $this->assertDatabaseHas('daily_expenses', ['id' => $sipparExpense->id, 'amount' => 250]);
 
         $payload = [
             'expense_date' => '2026-06-10', 'amount' => 1, 'currency' => 'IQD',
             'party_id' => $sipparParty->id,
+            'cashbox_id' => $cashbox->id,
         ];
         $this->actingAs($user)->put(route('sippar.daily-accounts.update', $otherExpense), $payload)->assertNotFound();
         $this->actingAs($user)->delete(route('sippar.daily-accounts.destroy', $otherExpense))->assertNotFound();

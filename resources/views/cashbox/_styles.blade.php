@@ -10,7 +10,7 @@
 .finance-icon-tile{width:44px;height:44px;border-radius:14px;background:#f3ebdf;color:#806344;display:grid;place-items:center;flex:0 0 44px}
 .finance-icon-tile .icon{width:23px;height:23px;flex-basis:23px}
 .finance-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.finance-page .finance-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;border-radius:10px;text-decoration:none;background:var(--accent);color:#202739;font-size:12px;font-weight:800;border:1px solid transparent;cursor:pointer;white-space:nowrap}
+.finance-page .finance-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;border-radius:10px;text-decoration:none;background:var(--accent);color:#fff;font-size:12px;font-weight:800;border:1px solid transparent;cursor:pointer;white-space:nowrap}
 .finance-page .finance-button.secondary{background:var(--surface);color:var(--text);border-color:var(--border)}
 .finance-page .finance-button:hover{filter:brightness(.97)}
 .finance-page .finance-button:focus-visible,.finance-page summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
@@ -60,7 +60,7 @@
 .finance-choice input:checked+span{color:var(--fin-in);border-color:var(--fin-in);background:color-mix(in srgb,var(--fin-in) 8%,var(--surface))}
 .finance-choice.withdraw input:checked+span{color:var(--fin-out);border-color:var(--fin-out);background:color-mix(in srgb,var(--fin-out) 8%,var(--surface))}
 .finance-choice input:focus-visible+span{outline:3px solid var(--accent);outline-offset:3px}
-.finance-page .finance-submit{background:var(--fin-in);color:var(--surface);min-width:120px}
+.finance-page .finance-submit{background:var(--fin-in);color:#fff;min-width:120px}
 .finance-page .finance-transaction:has(input[value="withdrawal"]:checked) .finance-submit{background:var(--fin-out)}
 .finance-text-link{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--text-soft);font-size:12px}
 .finance-notice{padding:13px 16px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--fin-in);font-size:13px}.finance-notice.error{color:var(--fin-out)}

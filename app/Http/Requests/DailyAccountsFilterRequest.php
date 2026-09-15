@@ -33,6 +33,9 @@ class DailyAccountsFilterRequest extends FormRequest
 
     public function filters(): array
     {
-        return array_replace(['year' => (int) now()->year, 'currency' => 'IQD'], array_filter($this->validated(), fn ($value) => $value !== null && $value !== ''));
+        $filters = array_filter($this->validated(), fn ($value) => $value !== null && $value !== '');
+        unset($filters['currency']);
+
+        return array_replace(['year' => (int) now()->year], $filters);
     }
 }

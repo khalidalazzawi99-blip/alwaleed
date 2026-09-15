@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class DailyExpense extends Model
 {
-    protected $fillable = ['expense_date', 'amount', 'currency', 'party_id', 'notes'];
+    protected $fillable = ['cashbox_id', 'expense_date', 'amount', 'currency', 'party_id', 'notes'];
 
     protected function casts(): array
     {
@@ -21,6 +21,11 @@ class DailyExpense extends Model
     public function party()
     {
         return $this->belongsTo(DailyExpenseParty::class, 'party_id');
+    }
+
+    public function cashbox()
+    {
+        return $this->belongsTo(Cashbox::class)->withTrashed();
     }
 
     public function creator()

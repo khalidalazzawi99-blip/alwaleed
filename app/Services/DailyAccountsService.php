@@ -25,7 +25,7 @@ class DailyAccountsService
         $f = $this->filters;
         $start = CarbonImmutable::create((int) ($f['year'] ?? now()->year), 1, 1)->startOfDay();
         $query = DailyExpense::query()->where('company_id', $this->company->id)
-            ->where('currency', $f['currency'] ?? 'IQD')
+            ->whereIn('currency', ['IQD', 'USD'])
             ->where('expense_date', '>=', $start->toDateString())
             ->where('expense_date', '<', $start->addYear()->toDateString());
         if (! empty($f['month'])) {
@@ -59,8 +59,11 @@ class DailyAccountsService
 
     public function expensesByPerson(): Collection
     {
-        return $this->query()->select('party_id')->selectRaw('SUM(amount) as total')
-            ->groupBy('party_id')->orderByDesc('total')->orderBy('party_id')
+        return $this->query()->select('party_id')
+            ->selectRaw("COALESCE(SUM(CASE WHEN currency = 'IQD' THEN amount ELSE 0 END), 0) as total_iqd")
+            ->selectRaw("COALESCE(SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END), 0) as total_usd")
+            ->selectRaw('COALESCE(SUM(amount), 0) as total')
+            ->groupBy('party_id')->orderByDesc('total_iqd')->orderByDesc('total_usd')->orderBy('party_id')
             ->with(['party' => fn ($q) => $q->where('company_id', $this->company->id)])->get();
     }
 
@@ -73,22 +76,36 @@ class DailyAccountsService
             $month = $start->setMonth($i);
             $query->selectRaw('COALESCE(SUM(CASE WHEN expense_date >= ? AND expense_date < ? THEN amount ELSE 0 END), 0) AS month_'.$i,
                 [$month->toDateString(), $month->addMonth()->toDateString()]);
+            $query->selectRaw("COALESCE(SUM(CASE WHEN currency = 'IQD' AND expense_date >= ? AND expense_date < ? THEN amount ELSE 0 END), 0) AS month_iqd_{$i}",
+                [$month->toDateString(), $month->addMonth()->toDateString()]);
+            $query->selectRaw("COALESCE(SUM(CASE WHEN currency = 'USD' AND expense_date >= ? AND expense_date < ? THEN amount ELSE 0 END), 0) AS month_usd_{$i}",
+                [$month->toDateString(), $month->addMonth()->toDateString()]);
         }
         $totals = $query->toBase()->first();
 
         return collect(range(1, 12))->map(fn ($i) => [
             'month' => $i, 'name' => $start->setMonth($i)->locale('ar')->translatedFormat('F'),
-            'total' => $totals->{'month_'.$i},
+            'total' => $totals->{'month_'.$i}, 'total_iqd' => $totals->{'month_iqd_'.$i},
+            'total_usd' => $totals->{'month_usd_'.$i},
         ]);
     }
 
     public function summary(): array
     {
-        $totals = $this->query()->toBase()->selectRaw('COALESCE(SUM(amount), 0) as total, COUNT(*) as count, COALESCE(AVG(amount), 0) as average, MAX(expense_date) as last_date')->first();
+        $totals = $this->query()->toBase()
+            ->selectRaw("COALESCE(SUM(CASE WHEN currency = 'IQD' THEN amount ELSE 0 END), 0) as total_iqd")
+            ->selectRaw("COALESCE(SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END), 0) as total_usd")
+            ->selectRaw("COALESCE(AVG(CASE WHEN currency = 'IQD' THEN amount END), 0) as average_iqd")
+            ->selectRaw("COALESCE(AVG(CASE WHEN currency = 'USD' THEN amount END), 0) as average_usd")
+            ->selectRaw('COUNT(*) as count, MAX(expense_date) as last_date')->first();
         $people = $this->expensesByPerson();
         $months = $this->expensesByMonth();
 
-        return ['total' => $totals->total, 'count' => (int) $totals->count, 'average' => $totals->average,
+        return ['total_iqd' => $totals->total_iqd, 'total_usd' => $totals->total_usd,
+            'average_iqd' => $totals->average_iqd, 'average_usd' => $totals->average_usd,
+            'total' => (float) $totals->total_iqd + (float) $totals->total_usd,
+            'average' => (float) $totals->average_iqd + (float) $totals->average_usd,
+            'count' => (int) $totals->count,
             'last_date' => $totals->last_date ? CarbonImmutable::parse($totals->last_date)->toDateString() : null,
             'top_person' => $people->first(),
             'top_month' => $totals->count ? $months->sortByDesc('total')->first() : null,
@@ -98,7 +115,7 @@ class DailyAccountsService
     public function report(): array
     {
         return ['company' => $this->company, 'filters' => $this->filters, 'summary' => $this->summary(),
-            'currency' => $this->filters['currency'] ?? 'IQD', 'generatedAt' => now(),
+            'currency' => 'IQD / USD', 'generatedAt' => now(),
             'period' => ($this->filters['year'] ?? now()->year)
                 .(! empty($this->filters['month']) ? ' / '.$this->filters['month'] : '')
                 .' | '.($this->filters['from'] ?? 'بداية السنة').' — '.($this->filters['to'] ?? 'نهاية السنة'),

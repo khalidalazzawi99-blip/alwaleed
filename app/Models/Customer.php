@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class Customer extends Model
 {
+    use SoftDeletes;
     protected static function booted(): void
     {
         static::creating(function (Customer $customer): void {

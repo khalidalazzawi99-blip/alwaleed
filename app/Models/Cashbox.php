@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class Cashbox extends Model
 {
+    use SoftDeletes;
     protected static function booted(): void
     {
         static::creating(function (Cashbox $cashbox): void {
@@ -30,11 +32,17 @@ class Cashbox extends Model
         'account_number',
         'balance',
         'is_active',
+        'is_system_legacy',
     ];
 
     protected function casts(): array
     {
-        return ['balance' => 'decimal:2', 'is_active' => 'boolean'];
+        return ['balance' => 'decimal:2', 'is_active' => 'boolean', 'is_system_legacy' => 'boolean'];
+    }
+
+    public function scopeOperational($query)
+    {
+        return $query->where('is_system_legacy', false);
     }
 
     public function company()

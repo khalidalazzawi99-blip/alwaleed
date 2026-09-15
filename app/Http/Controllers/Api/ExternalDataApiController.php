@@ -16,12 +16,18 @@ class ExternalDataApiController extends Controller
         $request->validate(['updated_since' => ['nullable', 'date'], 'per_page' => ['nullable', 'integer', 'min:1', 'max:100']]);
         $company = $request->attributes->get('company');
         $currency = Setting::where('company_id', $company->id)->value('currency') ?: 'IQD';
-        $page = Customer::where('company_id', $company->id)
+        $differential = $request->filled('updated_since');
+        $page = Customer::query()->when($differential, fn ($query) => $query->withTrashed())
+            ->where('company_id', $company->id)
             ->when($request->filled('updated_since'), fn ($query) => $query->where('updated_at', '>=', $request->date('updated_since')))
             ->orderBy('id')->paginate($this->perPage($request))->withQueryString();
 
         return response()->json([
             'data' => $page->getCollection()->map(function (Customer $customer) use ($balances, $currency) {
+                if ($customer->trashed()) {
+                    return ['customer_id' => $customer->integration_id, 'is_deleted' => true,
+                        'updated_at' => $customer->updated_at?->utc()->toIso8601String()];
+                }
                 $balance = $balances->calculate($customer);
 
                 return [
@@ -34,10 +40,12 @@ class ExternalDataApiController extends Controller
                     'balance' => round($balance['currentBalance'], 2),
                     'currency' => strtoupper($currency),
                     'is_active' => true,
+                    'is_deleted' => false,
                     'updated_at' => $customer->updated_at?->utc()->toIso8601String(),
                 ];
             })->values(),
             'meta' => $this->pagination($page),
+            'sync' => ['mode' => $differential ? 'differential' : 'full', 'authoritative' => ! $differential],
         ]);
     }
 
@@ -46,20 +54,28 @@ class ExternalDataApiController extends Controller
         $request->validate(['updated_since' => ['nullable', 'date'], 'per_page' => ['nullable', 'integer', 'min:1', 'max:100']]);
         $company = $request->attributes->get('company');
         $currency = Setting::where('company_id', $company->id)->value('currency') ?: 'IQD';
-        $page = Cashbox::where('company_id', $company->id)
+        $differential = $request->filled('updated_since');
+        $page = Cashbox::query()->when($differential, fn ($query) => $query->withTrashed())
+            ->where('company_id', $company->id)->where('is_system_legacy', false)
             ->when($request->filled('updated_since'), fn ($query) => $query->where('updated_at', '>=', $request->date('updated_since')))
             ->orderBy('id')->paginate($this->perPage($request))->withQueryString();
 
         return response()->json([
-            'data' => $page->getCollection()->map(fn (Cashbox $cashbox) => [
+            'data' => $page->getCollection()->map(fn (Cashbox $cashbox) => $cashbox->trashed() ? [
+                'bank_id' => $cashbox->integration_id,
+                'is_deleted' => true,
+                'updated_at' => $cashbox->updated_at?->utc()->toIso8601String(),
+            ] : [
                 'bank_id' => $cashbox->integration_id,
                 'name' => $cashbox->name,
                 'balance' => round((float) $cashbox->balance, 2),
                 'currency' => strtoupper($currency),
                 'is_active' => (bool) $cashbox->is_active,
+                'is_deleted' => false,
                 'updated_at' => $cashbox->updated_at?->utc()->toIso8601String(),
             ])->values(),
             'meta' => $this->pagination($page),
+            'sync' => ['mode' => $differential ? 'differential' : 'full', 'authoritative' => ! $differential],
         ]);
     }
 

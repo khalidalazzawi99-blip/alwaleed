@@ -24,6 +24,6 @@ class CashboxLog extends Model
 
     public function cashbox()
     {
-        return $this->belongsTo(Cashbox::class);
+        return $this->belongsTo(Cashbox::class)->withTrashed();
     }
 }

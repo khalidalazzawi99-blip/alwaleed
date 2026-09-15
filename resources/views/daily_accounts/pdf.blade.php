@@ -51,7 +51,7 @@ h1 { margin: 0; color: #17233a; font-size: 24px; font-weight: 700; }
 </style>
 </head>
 <body>
-@php($money = fn ($value) => rtrim(rtrim(number_format((float) $value, 2, '.', ','), '0'), '.').' '.$currency)
+@php($money = fn ($value, $code) => rtrim(rtrim(number_format((float) $value, 2, '.', ','), '0'), '.').' '.$code)
 <table class="header"><tr>
 <td class="brand">
     <div class="brand-line"></div>
@@ -74,11 +74,11 @@ h1 { margin: 0; color: #17233a; font-size: 24px; font-weight: 700; }
 </tr></table>
 
 <table class="summary"><tr>
-<td class="primary"><span class="title">إجمالي المصروف</span><strong>{{ $money($summary['total']) }}</strong><small>ضمن النتائج المحددة</small></td>
+<td class="primary"><span class="title">إجمالي المصروف</span><strong>{{ $money($summary['total_iqd'], 'IQD') }}<br>{{ $money($summary['total_usd'], 'USD') }}</strong><small>ضمن النتائج المحددة</small></td>
 <td><span class="title">عدد الحركات</span><strong>{{ number_format($summary['count']) }}</strong><small>حركة مالية</small></td>
-<td><span class="title">متوسط المصروف</span><strong>{{ $money($summary['average']) }}</strong><small>لكل حركة</small></td>
-<td class="person"><span class="title">أعلى شخص صرف</span><strong>{{ $summary['top_person']?->party?->name ?? '—' }}</strong><small>{{ $money($summary['top_person']?->total ?? 0) }}</small></td>
-<td><span class="title">أعلى شهر صرف</span><strong>{{ $summary['top_month']['name'] ?? '—' }}</strong><small>{{ $money($summary['top_month']['total'] ?? 0) }}</small></td>
+<td><span class="title">متوسط المصروف</span><strong>{{ $money($summary['average_iqd'], 'IQD') }}<br>{{ $money($summary['average_usd'], 'USD') }}</strong><small>لكل حركة</small></td>
+<td class="person"><span class="title">أعلى شخص صرف</span><strong>{{ $summary['top_person']?->party?->name ?? '—' }}</strong><small>{{ $money($summary['top_person']?->total_iqd ?? 0, 'IQD') }}<br>{{ $money($summary['top_person']?->total_usd ?? 0, 'USD') }}</small></td>
+<td><span class="title">أعلى شهر صرف</span><strong>{{ $summary['top_month']['name'] ?? '—' }}</strong><small>{{ $money($summary['top_month']['total_iqd'] ?? 0, 'IQD') }}<br>{{ $money($summary['top_month']['total_usd'] ?? 0, 'USD') }}</small></td>
 </tr></table>
 
 <h2 class="section-title">تفاصيل الحركات اليومية</h2>
@@ -96,7 +96,7 @@ h1 { margin: 0; color: #17233a; font-size: 24px; font-weight: 700; }
 <tr>
 <td class="date">{{ $expense->expense_date->format('Y-m-d') }}</td>
 <td>{{ $expense->expense_date->locale('ar')->translatedFormat('l') }}</td>
-<td class="money">{{ $money($expense->amount) }}</td>
+<td class="money">{{ $money($expense->amount, $expense->currency) }}</td>
 <td>{{ $expense->party->name }}</td>
 <td class="notes">{{ $expense->notes ?: '—' }}</td>
 <td>{{ $expense->expense_date->month }}</td>
@@ -109,7 +109,7 @@ h1 { margin: 0; color: #17233a; font-size: 24px; font-weight: 700; }
 
 <table class="grand-total"><tr>
 <td class="total-label">الإجمالي النهائي للمصروفات</td>
-<td class="total-value">{{ $money($summary['total']) }}</td>
+<td class="total-value">{{ $money($summary['total_iqd'], 'IQD') }}<br>{{ $money($summary['total_usd'], 'USD') }}</td>
 </tr></table>
 </body>
 </html>

@@ -37,7 +37,7 @@ class SystemAlertService
 
     private function cashboxAlert(User $user): void
     {
-        $balance = Cashbox::where('company_id', $user->company_id)->value('balance');
+        $balance = Cashbox::operational()->where('company_id', $user->company_id)->sum('balance');
         $currency = Setting::where('company_id', $user->company_id)->value('currency') ?: 'IQD';
         $threshold = config('notifications.low_balance_thresholds.'.$currency, 100000);
         if ($balance === null || $balance >= $threshold) return;

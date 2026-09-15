@@ -24,7 +24,7 @@ class Payment extends Model
 
     public function cashbox()
     {
-        return $this->belongsTo(Cashbox::class);
+        return $this->belongsTo(Cashbox::class)->withTrashed();
     }
 
     public function supplier()
@@ -34,7 +34,7 @@ class Payment extends Model
 
     public function customer()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Customer::class)->withTrashed();
     }
 
     public function getPartyAttribute()

@@ -28,10 +28,7 @@ class ReceiptController extends Controller
             ->get();
 
         $suppliers = Supplier::where('company_id', $companyId)->orderBy('name')->get();
-        $cashboxes = Cashbox::where('company_id', $companyId)->where('is_active', true)->orderBy('id')->get();
-        if ($cashboxes->isEmpty()) {
-            $cashboxes = collect([Cashbox::create(['company_id' => $companyId, 'name' => 'الصندوق الرئيسي', 'balance' => 0, 'is_active' => true])]);
-        }
+        $cashboxes = Cashbox::operational()->where('company_id', $companyId)->where('is_active', true)->orderBy('id')->get();
 
         $year = now()->year;
         $nextReceiptNumbers = $customers->mapWithKeys(fn ($party) => [
@@ -61,6 +58,7 @@ class ReceiptController extends Controller
             'cashbox_id' => ['required', 'integer'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'notes' => ['nullable', 'string'],
+            'redirect_to' => ['nullable', 'in:party'],
         ]);
 
         $party = $this->findParty($request->party_type, $request->party_id, $companyId);
@@ -100,7 +98,11 @@ class ReceiptController extends Controller
             ]);
         });
 
-        return redirect('/receipts')
+        $redirect = $request->redirect_to === 'party'
+            ? '/'.$request->party_type.'s/'.$request->party_id
+            : '/receipts';
+
+        return redirect($redirect)
             ->with('success', __('تم إضافة سند القبض بنجاح'));
     }
 
@@ -114,7 +116,7 @@ class ReceiptController extends Controller
             ->orderBy('name')
             ->get();
         $suppliers = Supplier::where('company_id', $companyId)->orderBy('name')->get();
-        $cashboxes = Cashbox::where('company_id', $companyId)
+        $cashboxes = Cashbox::operational()->where('company_id', $companyId)
             ->where(fn ($query) => $query->where('is_active', true)->orWhereKey($receipt->cashbox_id))
             ->orderBy('id')->get();
 
@@ -146,7 +148,7 @@ class ReceiptController extends Controller
 
         DB::transaction(function () use ($companyId, $party, $request, $receipt, $selectedCashbox) {
         $oldAmount = (float) $receipt->amount;
-        $oldCashboxId = $receipt->cashbox_id ?: Cashbox::where('company_id', $companyId)->orderBy('id')->value('id');
+        $oldCashboxId = $receipt->cashbox_id;
 
         $partyOrYearChanged = $receipt->party_type !== $request->party_type
             || (int) $receipt->{$request->party_type.'_id'} !== (int) $party->id
@@ -164,7 +166,7 @@ class ReceiptController extends Controller
                 : $receipt->receipt_no,
         ]);
 
-        $cashboxes = Cashbox::whereIn('id', array_unique([$oldCashboxId, $selectedCashbox->id]))->lockForUpdate()->get()->keyBy('id');
+        $cashboxes = Cashbox::withTrashed()->whereIn('id', array_filter(array_unique([$oldCashboxId, $selectedCashbox->id])))->lockForUpdate()->get()->keyBy('id');
         $oldCashbox = $cashboxes->get($oldCashboxId);
         $cashbox = $cashboxes->get($selectedCashbox->id);
         if ($oldCashboxId === $selectedCashbox->id) {
@@ -198,7 +200,7 @@ class ReceiptController extends Controller
         $this->ensureReceiptBelongsToCompany($receipt);
 
         DB::transaction(function () use ($companyId, $receipt) {
-        $cashbox = Cashbox::whereKey($receipt->cashbox_id)
+        $cashbox = Cashbox::withTrashed()->whereKey($receipt->cashbox_id)
             ->where('company_id', $companyId)->lockForUpdate()->first();
         $cashbox?->decrement('balance', $receipt->amount);
         $cashbox?->refresh();
@@ -275,7 +277,7 @@ class ReceiptController extends Controller
 
     private function findCashbox(int $id, int $companyId): Cashbox
     {
-        return Cashbox::whereKey($id)->where('company_id', $companyId)->where('is_active', true)->firstOrFail();
+        return Cashbox::operational()->whereKey($id)->where('company_id', $companyId)->where('is_active', true)->firstOrFail();
     }
 
     private function nextReceiptNumber(int $companyId, string $partyType, int $partyId, int $year): string

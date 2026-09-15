@@ -3,6 +3,9 @@
 @media(max-width:900px){.statement-hero{align-items:flex-start;flex-direction:column}.statement-filter{grid-template-columns:1fr 1fr}.statement-kpis{grid-template-columns:repeat(2,1fr)}.statement-details{grid-template-columns:1fr}}@media(max-width:560px){.statement-filter,.statement-kpis,.detail-grid{grid-template-columns:1fr}.statement-actions{width:100%}.statement-actions .btn{width:100%;text-align:center}.statement-avatar{width:55px;height:55px}.statement-hero{padding:21px}}
 </style>
 <style>.statement-kpis{grid-template-columns:repeat(5,1fr)}@media(max-width:1100px){.statement-kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:560px){.statement-kpis{grid-template-columns:1fr}}</style>
+<style>
+.party-transactions{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.party-transaction{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:21px}.party-transaction h2{margin:0 0 16px;font-size:18px}.party-transaction-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.party-transaction-grid .wide{grid-column:1/-1}.party-transaction label{display:block;font-size:12px;font-weight:800;color:var(--text-soft);margin-bottom:7px}.party-transaction.deposit button{background:#15803d}.party-transaction.withdraw button{background:#b91c1c}@media(max-width:700px){.party-transactions,.party-transaction-grid{grid-template-columns:1fr}.party-transaction-grid .wide{grid-column:auto}}
+</style>
 
 <div class="statement-shell">
     <section class="statement-hero">
@@ -29,6 +32,37 @@
         <button type="submit">{{ __('messages.filter') }}</button>
         <a href="{{ $resetUrl }}" class="btn clear-btn">{{ __('messages.clear') }}</a>
     </form>
+
+    <section class="party-transactions">
+        <form method="POST" action="/receipts" class="party-transaction deposit">
+            @csrf
+            <input type="hidden" name="party_type" value="{{ $partyType }}">
+            <input type="hidden" name="party_id" value="{{ $party->id }}">
+            <input type="hidden" name="redirect_to" value="party">
+            <h2>إيداع في حساب {{ $party->name }}</h2>
+            <div class="party-transaction-grid">
+                <div><label>التاريخ</label><input type="date" name="receipt_date" value="{{ now()->toDateString() }}" required></div>
+                <div><label>الصندوق / الحساب</label><select name="cashbox_id" required><option value="">اختر الحساب</option>@foreach($cashboxes as $cashbox)<option value="{{ $cashbox->id }}">{{ $cashbox->name }} ({{ number_format($cashbox->balance, 2) }})</option>@endforeach</select></div>
+                <div><label>المبلغ</label><input type="number" name="amount" min="0.01" step="0.01" required></div>
+                <div><label>ملاحظات</label><input type="text" name="notes" maxlength="1000"></div>
+                <button class="wide" type="submit" @disabled($cashboxes->isEmpty())>تأكيد الإيداع</button>
+            </div>
+        </form>
+        <form method="POST" action="/payments" class="party-transaction withdraw">
+            @csrf
+            <input type="hidden" name="party_type" value="{{ $partyType }}">
+            <input type="hidden" name="party_id" value="{{ $party->id }}">
+            <input type="hidden" name="redirect_to" value="party">
+            <h2>سحب من حساب {{ $party->name }}</h2>
+            <div class="party-transaction-grid">
+                <div><label>التاريخ</label><input type="date" name="payment_date" value="{{ now()->toDateString() }}" required></div>
+                <div><label>الصندوق / الحساب</label><select name="cashbox_id" required><option value="">اختر الحساب</option>@foreach($cashboxes as $cashbox)<option value="{{ $cashbox->id }}">{{ $cashbox->name }} ({{ number_format($cashbox->balance, 2) }})</option>@endforeach</select></div>
+                <div><label>المبلغ</label><input type="number" name="amount" min="0.01" step="0.01" required></div>
+                <div><label>ملاحظات</label><input type="text" name="notes" maxlength="1000"></div>
+                <button class="wide" type="submit" @disabled($cashboxes->isEmpty())>تأكيد السحب</button>
+            </div>
+        </form>
+    </section>
 
     <section class="statement-kpis">
         <div class="statement-kpi"><span>{{ __('messages.total_invoiced') }}</span><strong>{{ number_format($totalInvoiced, 2) }} {{ $companyCurrency }}</strong></div>

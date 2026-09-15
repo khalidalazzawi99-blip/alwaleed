@@ -255,6 +255,48 @@ class ExternalInvoiceIntegrationTest extends TestCase
             ->assertJson(['data' => [$expected]]);
     }
 
+    public function test_customer_full_sync_is_authoritative_and_differential_sync_returns_deletion_tombstone(): void
+    {
+        $company = $this->company();
+        $customer = $this->customer($company);
+        [$plain] = $this->credential($company);
+        $since = now()->subSecond()->toIso8601String();
+
+        $this->withToken($plain)->getJson('/api/v1/external-customers')
+            ->assertOk()->assertJsonPath('sync.mode', 'full')->assertJsonPath('sync.authoritative', true)
+            ->assertJsonPath('data.0.customer_id', $customer->integration_id);
+
+        $customer->delete();
+
+        $this->withToken($plain)->getJson('/api/v1/external-customers')
+            ->assertOk()->assertJsonCount(0, 'data')->assertJsonPath('meta.total', 0);
+        $this->withToken($plain)->getJson('/api/v1/external-customers?updated_since='.urlencode($since))
+            ->assertOk()->assertJsonFragment([
+                'customer_id' => $customer->integration_id,
+                'is_deleted' => true,
+            ]);
+    }
+
+    public function test_bank_full_sync_excludes_deleted_and_legacy_accounts_and_differential_returns_tombstone(): void
+    {
+        $company = $this->company();
+        [$plain] = $this->credential($company);
+        $bank = Cashbox::create(['company_id' => $company->id, 'name' => 'Baghdad Bank', 'account_type' => 'bank', 'balance' => 0]);
+        Cashbox::create(['company_id' => $company->id, 'name' => 'الصندوق الرئيسي', 'balance' => 900, 'is_active' => false, 'is_system_legacy' => true]);
+        $since = now()->subSecond()->toIso8601String();
+
+        $this->withToken($plain)->getJson('/api/v1/external-banks')
+            ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.bank_id', $bank->integration_id)
+            ->assertJsonMissing(['name' => 'الصندوق الرئيسي']);
+
+        $bank->delete();
+
+        $this->withToken($plain)->getJson('/api/v1/external-banks')
+            ->assertOk()->assertJsonCount(0, 'data');
+        $this->withToken($plain)->getJson('/api/v1/external-banks?updated_since='.urlencode($since))
+            ->assertOk()->assertJsonFragment(['bank_id' => $bank->integration_id, 'is_deleted' => true]);
+    }
+
     private function company(string $suffix = ''): Company
     {
         return Company::create(['name' => 'Company '.$suffix, 'code' => 'C'.Str::upper(Str::random(8)), 'status' => 'active', 'subscription_start' => now(), 'subscription_end' => now()->addYear()]);

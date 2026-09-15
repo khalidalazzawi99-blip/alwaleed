@@ -19,7 +19,7 @@ class CashboxController extends Controller
     {
         $companyId = auth()->user()->company_id;
         $banksOnly = $request->routeIs('banks.index');
-        $cashboxes = Cashbox::with('customers')->where('company_id', $companyId)
+        $cashboxes = Cashbox::operational()->with('customers')->where('company_id', $companyId)
             ->when($banksOnly, fn ($query) => $query->where('account_type', 'bank'))->orderBy('id')->get();
         $request->validate(['cashbox_id' => ['nullable', 'integer']]);
         $selectedId = $request->filled('cashbox_id') ? $request->integer('cashbox_id') : null;
@@ -119,7 +119,6 @@ class CashboxController extends Controller
     public function destroy(Cashbox $cashbox)
     {
         $this->ensureOwned($cashbox);
-        abort_if(Cashbox::where('company_id', $cashbox->company_id)->count() <= 1, 422, 'لا يمكن حذف الصندوق الوحيد');
         abort_if((float) $cashbox->balance !== 0.0, 422, 'يجب أن يكون رصيد الصندوق صفراً قبل حذفه');
         $cashbox->delete();
         return back()->with('success', 'تم حذف الصندوق');
@@ -200,7 +199,7 @@ class CashboxController extends Controller
     private function cashboxRules(bool $creating): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'not_in:الصندوق الرئيسي'],
             'account_type' => ['nullable', 'in:cash,bank'],
             'bank_name' => ['nullable', 'required_if:account_type,bank', 'string', 'max:255'],
             'account_number' => ['nullable', 'string', 'max:100'],
@@ -220,5 +219,6 @@ class CashboxController extends Controller
     private function ensureOwned(Cashbox $cashbox): void
     {
         abort_unless($cashbox->company_id === auth()->user()->company_id, 404);
+        abort_if($cashbox->is_system_legacy, 404);
     }
 }

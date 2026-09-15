@@ -7,6 +7,7 @@ use App\Models\Supplier;
 use App\Models\Payment;
 use App\Models\Receipt;
 use App\Models\Setting;
+use App\Models\Cashbox;
 use App\Exports\ArrayExport;
 use App\Services\DocumentExportService;
 use Maatwebsite\Excel\Facades\Excel;
@@ -58,7 +59,11 @@ class SupplierController extends Controller
     {
         $this->ensureSupplierBelongsToCompany($supplier);
 
-        return view('suppliers.show', $this->statementData($request, $supplier));
+        $data = $this->statementData($request, $supplier);
+        $data['cashboxes'] = Cashbox::operational()->where('company_id', $supplier->company_id)
+            ->where('is_active', true)->orderBy('id')->get();
+
+        return view('suppliers.show', $data);
     }
 
     public function print(Request $request, Supplier $supplier)
