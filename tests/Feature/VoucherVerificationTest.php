@@ -27,7 +27,8 @@ class VoucherVerificationTest extends TestCase
         $this->assertSame($user->id, $receipt->created_by);
         $this->assertSame('active', $receipt->status);
         $this->get('/verify/document/'.$receipt->verification_token)->assertOk()
-            ->assertSee('سند القبض صحيح وفعال')->assertSee($receipt->receipt_no)->assertSee($company->name);
+            ->assertSee('سند القبض صحيح وفعال')->assertSee($receipt->receipt_no)->assertSee($company->name)
+            ->assertDontSee('الحساب المالي')->assertDontSee($cashbox->name);
         $this->actingAs($user)->get('/receipts/'.$receipt->id.'/print')->assertOk()
             ->assertSee('data:image/png;base64', false)->assertSee('data:image/svg+xml;base64', false)
             ->assertSee('امسح الرمز للتحقق من صحة سند القبض');
@@ -43,7 +44,8 @@ class VoucherVerificationTest extends TestCase
         $this->assertSame('PAY-'.now()->year.'-000001', $payment->payment_no);
         $this->assertSame(64, strlen($payment->verification_token));
         $this->get('/verify/document/'.$payment->verification_token)->assertOk()
-            ->assertSee('سند الصرف صحيح وفعال')->assertSee($payment->payment_no);
+            ->assertSee('سند الصرف صحيح وفعال')->assertSee($payment->payment_no)
+            ->assertDontSee('الحساب المالي')->assertDontSee($cashbox->name);
         $this->actingAs($user)->get('/payments/'.$payment->id.'/print')->assertOk()
             ->assertSee('امسح الرمز للتحقق من صحة سند الصرف');
     }

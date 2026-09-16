@@ -10,12 +10,12 @@ class DocumentVerificationController extends Controller
 {
     public function show(string $token)
     {
-        $document = Receipt::with(['company', 'cashbox', 'customer', 'supplier'])
+        $document = Receipt::with(['company', 'customer', 'supplier'])
             ->where('verification_token', $token)->first();
         $type = 'receipt';
 
         if (! $document) {
-            $document = Payment::with(['company', 'cashbox', 'customer', 'supplier'])
+            $document = Payment::with(['company', 'customer', 'supplier'])
                 ->where('verification_token', $token)->first();
             $type = 'payment';
         }

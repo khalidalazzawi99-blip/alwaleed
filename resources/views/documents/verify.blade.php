@@ -28,7 +28,6 @@
             <tr><td>التاريخ</td><td>{{ ($type === 'receipt' ? $document->receipt_date : $document->payment_date)?->format('Y-m-d') }}</td></tr>
             <tr><td>الجهة</td><td>{{ $document->party?->name ?? '-' }}</td></tr>
             <tr><td>المبلغ</td><td>{{ number_format($document->amount, 2) }} {{ $currency }}</td></tr>
-            @if($document->cashbox)<tr><td>الحساب المالي</td><td>{{ $document->cashbox->name }}</td></tr>@endif
             <tr><td>الحالة</td><td>{{ $document->status === 'cancelled' ? 'ملغي' : 'فعال' }}</td></tr>
         </table>
         <p class="foot">تعرض هذه الصفحة بيانات التحقق العامة فقط ولا تحتوي على أي معرّفات داخلية.</p>
