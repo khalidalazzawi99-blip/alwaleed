@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PartyDebtTransactionController;
 
 require __DIR__.'/daily_accounts.php';
 
@@ -433,6 +434,9 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     */
 
     Route::middleware(['role:admin,data_entry'])->group(function () {
+
+        Route::post('/party-debt-transactions', [PartyDebtTransactionController::class, 'store'])
+            ->name('party-debt-transactions.store');
 
         /*
         |--------------------------------------------------------------------------

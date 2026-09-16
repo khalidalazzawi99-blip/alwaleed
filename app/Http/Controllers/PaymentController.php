@@ -57,7 +57,6 @@ class PaymentController extends Controller
             'cashbox_id' => ['required', 'integer'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'notes' => ['nullable', 'string'],
-            'redirect_to' => ['nullable', 'in:party'],
         ]);
 
         $party = $this->findParty($request->party_type, $request->party_id, $companyId);
@@ -97,11 +96,7 @@ class PaymentController extends Controller
             ]);
         });
 
-        $redirect = $request->redirect_to === 'party'
-            ? '/'.$request->party_type.'s/'.$request->party_id
-            : '/payments';
-
-        return redirect($redirect)
+        return redirect('/payments')
             ->with('success', __('تم إضافة سند الصرف بنجاح'));
     }
 

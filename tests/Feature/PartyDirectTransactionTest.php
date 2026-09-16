@@ -14,50 +14,54 @@ class PartyDirectTransactionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_customer_account_can_receive_deposits_and_withdrawals_in_place(): void
+    public function test_customer_borrowing_and_debt_payment_never_change_a_bank_balance(): void
     {
-        [$user, $customer, , $cashbox] = $this->records();
+        [$user, $customer, , $bank] = $this->records();
 
         $this->actingAs($user)->get('/customers/'.$customer->id)
-            ->assertOk()->assertSee('إيداع في حساب')->assertSee('سحب من حساب');
+            ->assertOk()->assertSee('سداد ديون')->assertSee('استدانة')
+            ->assertDontSee('الصندوق / الحساب');
 
-        $this->post('/receipts', $this->transaction('customer', $customer->id, $cashbox->id, 75, true))
+        $this->postDebt('customer', $customer->id, 'borrowing', 75)
             ->assertRedirect('/customers/'.$customer->id);
-        $this->post('/payments', $this->transaction('customer', $customer->id, $cashbox->id, 25, false))
+        $this->postDebt('customer', $customer->id, 'debt_payment', 25)
             ->assertRedirect('/customers/'.$customer->id);
 
-        $this->assertDatabaseHas('receipts', ['customer_id' => $customer->id, 'amount' => 75]);
-        $this->assertDatabaseHas('payments', ['customer_id' => $customer->id, 'amount' => 25]);
-        $this->assertSame(150.0, (float) $cashbox->fresh()->balance);
+        $this->assertDatabaseHas('party_debt_transactions', ['customer_id' => $customer->id, 'type' => 'borrowing', 'amount' => 75]);
+        $this->assertDatabaseHas('party_debt_transactions', ['customer_id' => $customer->id, 'type' => 'debt_payment', 'amount' => 25]);
+        $this->assertDatabaseCount('receipts', 0);
+        $this->assertDatabaseCount('payments', 0);
+        $this->assertSame(100.0, (float) $bank->fresh()->balance);
+        $this->get('/customers/'.$customer->id)->assertViewHas('balance', 50.0);
     }
 
-    public function test_supplier_account_can_receive_deposits_and_withdrawals_in_place(): void
+    public function test_supplier_borrowing_and_debt_payment_never_change_a_bank_balance(): void
     {
-        [$user, , $supplier, $cashbox] = $this->records();
+        [$user, , $supplier, $bank] = $this->records();
 
         $this->actingAs($user)->get('/suppliers/'.$supplier->id)
-            ->assertOk()->assertSee('إيداع في حساب')->assertSee('سحب من حساب');
+            ->assertOk()->assertSee('سداد ديون')->assertSee('استدانة');
 
-        $this->post('/receipts', $this->transaction('supplier', $supplier->id, $cashbox->id, 40, true))
+        $this->postDebt('supplier', $supplier->id, 'borrowing', 40)
             ->assertRedirect('/suppliers/'.$supplier->id);
-        $this->post('/payments', $this->transaction('supplier', $supplier->id, $cashbox->id, 10, false))
+        $this->postDebt('supplier', $supplier->id, 'debt_payment', 10)
             ->assertRedirect('/suppliers/'.$supplier->id);
 
-        $this->assertDatabaseHas('receipts', ['supplier_id' => $supplier->id, 'amount' => 40]);
-        $this->assertDatabaseHas('payments', ['supplier_id' => $supplier->id, 'amount' => 10]);
-        $this->assertSame(130.0, (float) $cashbox->fresh()->balance);
+        $this->assertDatabaseHas('party_debt_transactions', ['supplier_id' => $supplier->id, 'type' => 'borrowing', 'amount' => 40]);
+        $this->assertDatabaseHas('party_debt_transactions', ['supplier_id' => $supplier->id, 'type' => 'debt_payment', 'amount' => 10]);
+        $this->assertSame(100.0, (float) $bank->fresh()->balance);
+        $this->get('/suppliers/'.$supplier->id)->assertViewHas('balance', 30.0);
     }
 
-    private function transaction(string $type, int $partyId, int $cashboxId, float $amount, bool $deposit): array
+    private function postDebt(string $partyType, int $partyId, string $type, float $amount)
     {
-        return [
-            $deposit ? 'receipt_date' : 'payment_date' => '2026-09-15',
-            'party_type' => $type,
+        return $this->post('/party-debt-transactions', [
+            'party_type' => $partyType,
             'party_id' => $partyId,
-            'cashbox_id' => $cashboxId,
+            'type' => $type,
+            'transaction_date' => '2026-09-16',
             'amount' => $amount,
-            'redirect_to' => 'party',
-        ];
+        ]);
     }
 
     private function records(): array
@@ -69,8 +73,8 @@ class PartyDirectTransactionTest extends TestCase
         $user = User::factory()->create(['company_id' => $company->id, 'role' => 'admin']);
         $customer = Customer::create(['company_id' => $company->id, 'name' => 'زبون تجريبي']);
         $supplier = Supplier::create(['company_id' => $company->id, 'name' => 'مورد تجريبي']);
-        $cashbox = Cashbox::create(['company_id' => $company->id, 'name' => 'الصندوق', 'balance' => 100]);
+        $bank = Cashbox::create(['company_id' => $company->id, 'name' => 'مصرف بغداد', 'account_type' => 'bank', 'balance' => 100]);
 
-        return [$user, $customer, $supplier, $cashbox];
+        return [$user, $customer, $supplier, $bank];
     }
 }

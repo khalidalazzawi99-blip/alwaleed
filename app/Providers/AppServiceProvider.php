@@ -15,6 +15,7 @@ use App\Models\DailyExpenseParty;
 use App\Models\ExternalInvoice;
 use App\Models\ExternalInvoiceIntegration;
 use App\Models\Payment;
+use App\Models\PartyDebtTransaction;
 use App\Models\Receipt;
 use App\Models\Setting;
 use App\Models\Supplier;
@@ -83,6 +84,7 @@ class AppServiceProvider extends ServiceProvider
             ExternalInvoiceIntegration::class,
             Customer::class,
             Payment::class,
+            PartyDebtTransaction::class,
             Receipt::class,
             Setting::class,
             Supplier::class,

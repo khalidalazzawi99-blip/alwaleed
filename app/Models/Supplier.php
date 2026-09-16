@@ -22,4 +22,5 @@ class Supplier extends Model
 
     public function receipts() { return $this->hasMany(Receipt::class); }
     public function payments() { return $this->hasMany(Payment::class); }
+    public function debtTransactions() { return $this->hasMany(PartyDebtTransaction::class); }
 }

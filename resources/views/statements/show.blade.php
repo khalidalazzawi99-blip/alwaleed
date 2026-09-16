@@ -34,32 +34,30 @@
     </form>
 
     <section class="party-transactions">
-        <form method="POST" action="/receipts" class="party-transaction deposit">
+        <form method="POST" action="{{ route('party-debt-transactions.store') }}" class="party-transaction deposit">
             @csrf
             <input type="hidden" name="party_type" value="{{ $partyType }}">
             <input type="hidden" name="party_id" value="{{ $party->id }}">
-            <input type="hidden" name="redirect_to" value="party">
-            <h2>إيداع في حساب {{ $party->name }}</h2>
+            <input type="hidden" name="type" value="debt_payment">
+            <h2>سداد ديون {{ $party->name }}</h2>
             <div class="party-transaction-grid">
-                <div><label>التاريخ</label><input type="date" name="receipt_date" value="{{ now()->toDateString() }}" required></div>
-                <div><label>الصندوق / الحساب</label><select name="cashbox_id" required><option value="">اختر الحساب</option>@foreach($cashboxes as $cashbox)<option value="{{ $cashbox->id }}">{{ $cashbox->name }} ({{ number_format($cashbox->balance, 2) }})</option>@endforeach</select></div>
+                <div><label>التاريخ</label><input type="date" name="transaction_date" value="{{ now()->toDateString() }}" required></div>
                 <div><label>المبلغ</label><input type="number" name="amount" min="0.01" step="0.01" required></div>
                 <div><label>ملاحظات</label><input type="text" name="notes" maxlength="1000"></div>
-                <button class="wide" type="submit" @disabled($cashboxes->isEmpty())>تأكيد الإيداع</button>
+                <button class="wide" type="submit">تأكيد سداد الدين</button>
             </div>
         </form>
-        <form method="POST" action="/payments" class="party-transaction withdraw">
+        <form method="POST" action="{{ route('party-debt-transactions.store') }}" class="party-transaction withdraw">
             @csrf
             <input type="hidden" name="party_type" value="{{ $partyType }}">
             <input type="hidden" name="party_id" value="{{ $party->id }}">
-            <input type="hidden" name="redirect_to" value="party">
-            <h2>سحب من حساب {{ $party->name }}</h2>
+            <input type="hidden" name="type" value="borrowing">
+            <h2>استدانة على حساب {{ $party->name }}</h2>
             <div class="party-transaction-grid">
-                <div><label>التاريخ</label><input type="date" name="payment_date" value="{{ now()->toDateString() }}" required></div>
-                <div><label>الصندوق / الحساب</label><select name="cashbox_id" required><option value="">اختر الحساب</option>@foreach($cashboxes as $cashbox)<option value="{{ $cashbox->id }}">{{ $cashbox->name }} ({{ number_format($cashbox->balance, 2) }})</option>@endforeach</select></div>
+                <div><label>التاريخ</label><input type="date" name="transaction_date" value="{{ now()->toDateString() }}" required></div>
                 <div><label>المبلغ</label><input type="number" name="amount" min="0.01" step="0.01" required></div>
                 <div><label>ملاحظات</label><input type="text" name="notes" maxlength="1000"></div>
-                <button class="wide" type="submit" @disabled($cashboxes->isEmpty())>تأكيد السحب</button>
+                <button class="wide" type="submit">تأكيد الاستدانة</button>
             </div>
         </form>
     </section>

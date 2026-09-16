@@ -58,7 +58,6 @@ class ReceiptController extends Controller
             'cashbox_id' => ['required', 'integer'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'notes' => ['nullable', 'string'],
-            'redirect_to' => ['nullable', 'in:party'],
         ]);
 
         $party = $this->findParty($request->party_type, $request->party_id, $companyId);
@@ -98,11 +97,7 @@ class ReceiptController extends Controller
             ]);
         });
 
-        $redirect = $request->redirect_to === 'party'
-            ? '/'.$request->party_type.'s/'.$request->party_id
-            : '/receipts';
-
-        return redirect($redirect)
+        return redirect('/receipts')
             ->with('success', __('تم إضافة سند القبض بنجاح'));
     }
 
