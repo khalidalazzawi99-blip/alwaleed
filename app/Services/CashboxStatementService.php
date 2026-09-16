@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\Cashbox;
 use App\Models\CashboxLog;
+use App\Models\DailyExpense;
 use App\Models\Payment;
 use App\Models\Receipt;
-use App\Models\DailyExpense;
 use Illuminate\Support\Collection;
 
 class CashboxStatementService
@@ -24,7 +24,7 @@ class CashboxStatementService
                 ->sum(fn ($row) => $row->incomingCents - $row->outgoingCents);
         }
         $period = $movements
-            ->filter(fn ($row) => (!$from || $row->date >= $from) && (!$to || $row->date <= $to))
+            ->filter(fn ($row) => (! $from || $row->date >= $from) && (! $to || $row->date <= $to))
             ->values();
         $runningCents = $openingCents;
         foreach ($period as $row) {
@@ -48,9 +48,9 @@ class CashboxStatementService
 
     private function movements(Cashbox $cashbox): Collection
     {
-        $receipts = Receipt::with(['customer', 'supplier'])->where('company_id', $cashbox->company_id)
+        $receipts = Receipt::with(['customer', 'supplier'])->active()->where('company_id', $cashbox->company_id)
             ->where('cashbox_id', $cashbox->id)->get();
-        $payments = Payment::with(['customer', 'supplier'])->where('company_id', $cashbox->company_id)
+        $payments = Payment::with(['customer', 'supplier'])->active()->where('company_id', $cashbox->company_id)
             ->where('cashbox_id', $cashbox->id)->get();
         $dailyExpenses = DailyExpense::with('party')->where('company_id', $cashbox->company_id)
             ->where('cashbox_id', $cashbox->id)->get();

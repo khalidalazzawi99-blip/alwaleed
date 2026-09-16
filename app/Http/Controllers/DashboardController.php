@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Customer;
-use App\Models\Supplier;
 use App\Models\Cashbox;
-use App\Models\Receipt;
-use App\Models\Payment;
 use App\Models\Company;
-use App\Models\User;
+use App\Models\Customer;
+use App\Models\Payment;
+use App\Models\Receipt;
 use App\Models\Setting;
+use App\Models\Supplier;
+use App\Models\User;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -78,13 +78,13 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $totalReceipts = Receipt::where('company_id', $companyId)
+        $totalReceipts = Receipt::active()->where('company_id', $companyId)
             ->sum('amount');
 
-        $receiptsCount = Receipt::where('company_id', $companyId)
+        $receiptsCount = Receipt::active()->where('company_id', $companyId)
             ->count();
 
-        $latestReceipts = Receipt::with(['customer', 'supplier'])
+        $latestReceipts = Receipt::with(['customer', 'supplier'])->active()
             ->where('company_id', $companyId)
             ->latest()
             ->take(5)
@@ -96,13 +96,13 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $totalPayments = Payment::where('company_id', $companyId)
+        $totalPayments = Payment::active()->where('company_id', $companyId)
             ->sum('amount');
 
-        $paymentsCount = Payment::where('company_id', $companyId)
+        $paymentsCount = Payment::active()->where('company_id', $companyId)
             ->count();
 
-        $latestPayments = Payment::with(['customer', 'supplier'])
+        $latestPayments = Payment::with(['customer', 'supplier'])->active()
             ->where('company_id', $companyId)
             ->latest()
             ->take(5)
@@ -114,11 +114,11 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $todayReceipts = Receipt::where('company_id', $companyId)
+        $todayReceipts = Receipt::active()->where('company_id', $companyId)
             ->whereDate('receipt_date', today())
             ->sum('amount');
 
-        $todayPayments = Payment::where('company_id', $companyId)
+        $todayPayments = Payment::active()->where('company_id', $companyId)
             ->whereDate('payment_date', today())
             ->sum('amount');
 
@@ -130,12 +130,12 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $monthReceipts = Receipt::where('company_id', $companyId)
+        $monthReceipts = Receipt::active()->where('company_id', $companyId)
             ->whereYear('receipt_date', now()->year)
             ->whereMonth('receipt_date', now()->month)
             ->sum('amount');
 
-        $monthPayments = Payment::where('company_id', $companyId)
+        $monthPayments = Payment::active()->where('company_id', $companyId)
             ->whereYear('payment_date', now()->year)
             ->whereMonth('payment_date', now()->month)
             ->sum('amount');
@@ -208,7 +208,6 @@ class DashboardController extends Controller
             'companyUsersCount' => $companyUsersCount,
         ]);
     }
-
 
     /*
     |--------------------------------------------------------------------------

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Payment extends Model
 {
@@ -14,8 +15,43 @@ class Payment extends Model
         'supplier_id',
         'customer_id',
         'amount',
-        'notes'
+        'notes',
+        'status',
+        'created_by',
+        'updated_by',
+        'cancelled_by',
+        'cancelled_at',
+        'cancellation_reason',
     ];
+
+    protected $hidden = ['verification_token'];
+
+    protected function casts(): array
+    {
+        return ['payment_date' => 'date', 'cancelled_at' => 'datetime'];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Payment $payment): void {
+            $payment->verification_token ??= Str::random(64);
+            $payment->status ??= 'active';
+            $payment->created_by ??= auth()->id();
+        });
+        static::updating(function (Payment $payment): void {
+            if ($payment->isDirty('payment_no')) {
+                $payment->payment_no = $payment->getOriginal('payment_no');
+            }
+            if (auth()->id()) {
+                $payment->updated_by = auth()->id();
+            }
+        });
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
 
     public function company()
     {
@@ -35,6 +71,21 @@ class Payment extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class)->withTrashed();
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function canceller()
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     public function getPartyAttribute()

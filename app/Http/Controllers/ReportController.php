@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Customer;
-use App\Models\Supplier;
-use App\Models\Receipt;
-use App\Models\Payment;
-use App\Models\Cashbox;
 use App\Exports\ArrayExport;
+use App\Models\Cashbox;
+use App\Models\Customer;
+use App\Models\Payment;
+use App\Models\Receipt;
+use App\Models\Supplier;
 use App\Services\DocumentExportService;
+use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ReportController extends Controller
@@ -21,8 +21,8 @@ class ReportController extends Controller
         $from = $request->from;
         $to = $request->to;
 
-        $receiptsQuery = Receipt::where('company_id', $companyId);
-        $paymentsQuery = Payment::where('company_id', $companyId);
+        $receiptsQuery = Receipt::active()->where('company_id', $companyId);
+        $paymentsQuery = Payment::active()->where('company_id', $companyId);
 
         if ($from && $to) {
             $receiptsQuery->whereBetween('receipt_date', [$from, $to]);
@@ -103,8 +103,8 @@ class ReportController extends Controller
         $from = $request->from;
         $to = $request->to;
 
-        $receiptsQuery = Receipt::where('company_id', $companyId);
-        $paymentsQuery = Payment::where('company_id', $companyId);
+        $receiptsQuery = Receipt::active()->where('company_id', $companyId);
+        $paymentsQuery = Payment::active()->where('company_id', $companyId);
 
         if ($from && $to) {
             $receiptsQuery->whereBetween('receipt_date', [$from, $to]);
@@ -210,11 +210,11 @@ class ReportController extends Controller
         $companyId = auth()->user()->company_id;
         $from = $request->from;
         $to = $request->to;
-        $receipts = Receipt::with(['customer', 'supplier'])->where('company_id', $companyId)
+        $receipts = Receipt::with(['customer', 'supplier'])->active()->where('company_id', $companyId)
             ->when($from, fn ($query) => $query->whereDate('receipt_date', '>=', $from))
             ->when($to, fn ($query) => $query->whereDate('receipt_date', '<=', $to))
             ->latest('receipt_date')->get();
-        $payments = Payment::with(['customer', 'supplier'])->where('company_id', $companyId)
+        $payments = Payment::with(['customer', 'supplier'])->active()->where('company_id', $companyId)
             ->when($from, fn ($query) => $query->whereDate('payment_date', '>=', $from))
             ->when($to, fn ($query) => $query->whereDate('payment_date', '<=', $to))
             ->latest('payment_date')->get();

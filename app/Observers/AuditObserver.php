@@ -5,8 +5,8 @@ namespace App\Observers;
 use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\CompanyFeature;
-use App\Models\ExternalInvoice;
 use App\Models\Customer;
+use App\Models\ExternalInvoice;
 use App\Models\Payment;
 use App\Models\Receipt;
 use App\Models\Setting;
@@ -19,6 +19,7 @@ class AuditObserver
 {
     private const HIDDEN_FIELDS = [
         'password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'token_hash', 'api_key',
+        'verification_token',
     ];
 
     public function created(Model $model): void
@@ -89,15 +90,15 @@ class AuditObserver
 
     private function notifyUsers(Model $model, string $event, ?int $companyId, ?User $actor): void
     {
-        if (!$model instanceof Company
-            && !$model instanceof ExternalInvoice
-            && !$model instanceof CompanyFeature
-            && !$model instanceof Customer
-            && !$model instanceof Supplier
-            && !$model instanceof Receipt
-            && !$model instanceof Payment
-            && !$model instanceof Setting
-            && !$model instanceof User) {
+        if (! $model instanceof Company
+            && ! $model instanceof ExternalInvoice
+            && ! $model instanceof CompanyFeature
+            && ! $model instanceof Customer
+            && ! $model instanceof Supplier
+            && ! $model instanceof Receipt
+            && ! $model instanceof Payment
+            && ! $model instanceof Setting
+            && ! $model instanceof User) {
             return;
         }
 

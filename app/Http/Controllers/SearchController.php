@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\ExternalInvoice;
 use App\Models\Payment;
 use App\Models\Receipt;
 use App\Models\Supplier;
-use App\Models\ExternalInvoice;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +16,19 @@ class SearchController extends Controller
     public function index(Request $request)
     {
         $term = $this->term($request);
+        $companyId = auth()->user()->company_id;
+        if (preg_match('/^RCP-\d{4}-\d{6}$/i', $term)) {
+            $receipt = Receipt::where('company_id', $companyId)->where('receipt_no', strtoupper($term))->first();
+            if ($receipt) {
+                return redirect('/receipts/'.$receipt->id.'/print');
+            }
+        }
+        if (preg_match('/^PAY-\d{4}-\d{6}$/i', $term)) {
+            $payment = Payment::where('company_id', $companyId)->where('payment_no', strtoupper($term))->first();
+            if ($payment) {
+                return redirect('/payments/'.$payment->id.'/print');
+            }
+        }
         $results = $term === '' ? $this->emptyResults() : $this->results($term, 50);
 
         return view('search.index', $results + ['term' => $term]);
@@ -69,9 +82,9 @@ class SearchController extends Controller
         }
 
         foreach ($results['externalInvoices'] as $invoice) {
-            $items->push(['type'=>__('messages.external_invoices'),'title'=>$invoice->invoice_no,
-                'meta'=>($invoice->customer?->name ?: __('messages.unlinked')).' · '.number_format($invoice->amount,2),
-                'url'=>url('/external-invoices')]);
+            $items->push(['type' => __('messages.external_invoices'), 'title' => $invoice->invoice_no,
+                'meta' => ($invoice->customer?->name ?: __('messages.unlinked')).' · '.number_format($invoice->amount, 2),
+                'url' => url('/external-invoices')]);
         }
 
         return response()->json($items->take(12)->values());
@@ -126,9 +139,9 @@ class SearchController extends Controller
 
         $externalInvoices = ExternalInvoice::with('customer')
             ->when($companyId, fn (Builder $query) => $query->where('company_id', $companyId))
-            ->where(fn (Builder $query) => $query->where('invoice_no','like',$like)
-                ->orWhere('external_invoice_id','like',$like)
-                ->orWhereHas('customer',fn(Builder $query)=>$query->where('name','like',$like)->orWhere('phone','like',$like)))
+            ->where(fn (Builder $query) => $query->where('invoice_no', 'like', $like)
+                ->orWhere('external_invoice_id', 'like', $like)
+                ->orWhereHas('customer', fn (Builder $query) => $query->where('name', 'like', $like)->orWhere('phone', 'like', $like)))
             ->latest('invoice_date')->limit($limit)->get();
 
         return compact('customers', 'suppliers', 'receipts', 'payments', 'externalInvoices');

@@ -70,7 +70,7 @@
 <input
     type="text"
     id="receiptSearch"
-    placeholder="{{ __('بحث في سندات القبض...') }}"
+    placeholder="ابحث برقم السند أو امسح الباركود"
     style="margin-bottom:20px">
 <table>
 <thead>
@@ -87,21 +87,21 @@
 
 <tbody>
 @foreach($receipts as $receipt)
-<tr>
+<tr data-document-number="{{ $receipt->receipt_no }}">
 <td>{{ $receipt->receipt_no }}</td>
 <td>{{ $receipt->receipt_date }}</td>
 <td>{{ $receipt->party?->name ?? '-' }} <small>({{ $receipt->party_type === 'customer' ? __('messages.customer') : __('messages.supplier') }})</small></td>
 <td>{{ $receipt->cashbox?->name ?? __('حساب مالي قديم غير محدد') }}</td>
-<td style="color:#16A34A;font-weight:800">{{ number_format($receipt->amount,2) }}</td>
+<td style="color:#16A34A;font-weight:800">{{ number_format($receipt->amount,2) }}<br><small style="color:{{ $receipt->status==='cancelled'?'#DC2626':'#15803D' }}">{{ $receipt->status==='cancelled'?'ملغي':'فعال' }}</small></td>
 <td>{{ $receipt->notes }}</td>
 <td>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
 
-    <a href="/receipts/{{ $receipt->id }}/edit"
+    @if($receipt->status !== 'cancelled')<a href="/receipts/{{ $receipt->id }}/edit"
        class="btn"
        style="margin-left:10px;">
        {{ __('تعديل') }}
-    </a>
+    </a>@endif
 
     <a href="/receipts/{{ $receipt->id }}/print"
        class="btn"
@@ -113,12 +113,13 @@
     <a href="/receipts/{{ $receipt->id }}/pdf" class="btn">PDF</a>
     <a href="/receipts/{{ $receipt->id }}/excel" class="btn">Excel</a>
 
-    <form action="/receipts/{{ $receipt->id }}"
+    @if($receipt->status !== 'cancelled')<form action="/receipts/{{ $receipt->id }}"
           method="POST"
           style="display:inline;">
 
         @csrf
         @method('DELETE')
+        <input type="hidden" name="cancellation_reason" value="">
 
         <button
 
@@ -134,14 +135,14 @@
     border:none;
     cursor:pointer;
     "
-    onclick="return confirm(@js(__('هل أنت متأكد من حذف السند؟')))"
+    onclick="const reason=prompt('سبب الإلغاء (اختياري):');if(reason===null)return false;this.form.cancellation_reason.value=reason;return confirm('تأكيد إلغاء السند؟')"
 >
 
-    {{ __('حذف') }}
+    إلغاء
 
 </button>
 
-    </form>
+    </form>@endif
     </div>
 </td>
 </tr>
@@ -152,7 +153,7 @@
 
 </div>
 <script>
-const nextReceiptNumbers = @json($nextReceiptNumbers);
+const nextReceiptNo = @json($nextReceiptNo);
 const receiptCurrentYear = {{ now()->year }};
 const receiptParty = document.getElementById('receiptParty');
 const receiptDate = document.getElementById('receiptDate');
@@ -164,8 +165,8 @@ function updateReceiptNumberPreview() {
     const [type, id] = partyKey ? partyKey.split(':') : ['', ''];
     document.getElementById('receiptPartyType').value = type;
     document.getElementById('receiptPartyId').value = id;
-    receiptNumberPreview.value = year == receiptCurrentYear && partyKey && nextReceiptNumbers[partyKey]
-        ? nextReceiptNumbers[partyKey]
+    receiptNumberPreview.value = year == receiptCurrentYear
+        ? nextReceiptNo
         : `RCP-${year}-000001`;
 }
 

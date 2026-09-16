@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Customer;
-use App\Models\Receipt;
-use App\Models\Payment;
-use App\Models\ExternalInvoice;
-use App\Models\Setting;
-use App\Models\PartyDebtTransaction;
 use App\Exports\ArrayExport;
+use App\Models\Customer;
+use App\Models\ExternalInvoice;
+use App\Models\PartyDebtTransaction;
+use App\Models\Payment;
+use App\Models\Receipt;
+use App\Models\Setting;
 use App\Services\DocumentExportService;
+use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
 class CustomerController extends Controller
@@ -20,8 +20,8 @@ class CustomerController extends Controller
         $companyId = auth()->user()->company_id;
 
         $customers = Customer::where('company_id', $companyId)
-            ->withSum(['receipts as total_received' => fn ($query) => $query->where('company_id', $companyId)], 'amount')
-            ->withSum(['payments as total_paid' => fn ($query) => $query->where('company_id', $companyId)], 'amount')
+            ->withSum(['receipts as total_received' => fn ($query) => $query->where('company_id', $companyId)->where('status', 'active')], 'amount')
+            ->withSum(['payments as total_paid' => fn ($query) => $query->where('company_id', $companyId)->where('status', 'active')], 'amount')
             ->withSum(['externalInvoices as total_invoiced' => fn ($query) => $query->where('company_id', $companyId)->where('status', '!=', 'cancelled')], 'amount')
             ->withSum(['debtTransactions as total_borrowed' => fn ($query) => $query->where('company_id', $companyId)->where('type', 'borrowing')], 'amount')
             ->withSum(['debtTransactions as total_debt_paid' => fn ($query) => $query->where('company_id', $companyId)->where('type', 'debt_payment')], 'amount')
@@ -66,6 +66,7 @@ class CustomerController extends Controller
         $data = $this->statementData($request, $customer);
         $data['externalInvoicesPage'] = ExternalInvoice::where('company_id', $customer->company_id)
             ->where('customer_id', $customer->id)->latest('invoice_date')->latest('id')->paginate(15)->withQueryString();
+
         return view('customers.show', $data);
     }
 
@@ -130,7 +131,7 @@ class CustomerController extends Controller
             'to' => ['nullable', 'date', 'after_or_equal:from'],
         ]);
 
-        $receipts = Receipt::where('company_id', $customer->company_id)
+        $receipts = Receipt::active()->where('company_id', $customer->company_id)
             ->where('customer_id', $customer->id)
             ->when($filters['from'] ?? null, fn ($query, $date) => $query->whereDate('receipt_date', '>=', $date))
             ->when($filters['to'] ?? null, fn ($query, $date) => $query->whereDate('receipt_date', '<=', $date))
@@ -138,7 +139,7 @@ class CustomerController extends Controller
             ->orderBy('id')
             ->get();
 
-        $payments = Payment::where('company_id', $customer->company_id)
+        $payments = Payment::active()->where('company_id', $customer->company_id)
             ->where('customer_id', $customer->id)
             ->when($filters['from'] ?? null, fn ($query, $date) => $query->whereDate('payment_date', '>=', $date))
             ->when($filters['to'] ?? null, fn ($query, $date) => $query->whereDate('payment_date', '<=', $date))
@@ -159,49 +160,50 @@ class CustomerController extends Controller
 
         $runningBalance = 0;
         $movements = $externalInvoices->map(fn (ExternalInvoice $invoice) => (object) [
-                'number' => $invoice->invoice_no,
-                'date' => $invoice->invoice_date->toDateString(),
-                'sort_id' => $invoice->id,
-                'sort_order' => 0,
-                'type' => __('فاتورة'),
-                'invoiced' => (float) $invoice->amount,
-                'received' => 0,
-                'paid' => 0,
-                'notes' => null,
-            ])->concat($receipts->map(fn (Receipt $receipt) => (object) [
-                'number' => $receipt->receipt_no,
-                'date' => date('Y-m-d', strtotime($receipt->receipt_date)),
-                'sort_id' => $receipt->id,
-                'sort_order' => 1,
-                'type' => __('قبض'),
-                'invoiced' => 0,
-                'received' => (float) $receipt->amount,
-                'paid' => 0,
-                'notes' => $receipt->notes,
-            ]))->concat($payments->map(fn (Payment $payment) => (object) [
-                'number' => $payment->payment_no,
-                'date' => date('Y-m-d', strtotime($payment->payment_date)),
-                'sort_id' => $payment->id,
-                'sort_order' => 2,
-                'type' => __('صرف'),
-                'invoiced' => 0,
-                'received' => 0,
-                'paid' => (float) $payment->amount,
-                'notes' => $payment->notes,
-            ]))->concat($debtTransactions->map(fn (PartyDebtTransaction $transaction) => (object) [
-                'number' => 'DEBT-'.$transaction->id,
-                'date' => $transaction->transaction_date->toDateString(),
-                'sort_id' => $transaction->id,
-                'sort_order' => 3,
-                'type' => $transaction->type === 'borrowing' ? 'استدانة' : 'سداد ديون',
-                'invoiced' => $transaction->type === 'borrowing' ? (float) $transaction->amount : 0,
-                'received' => $transaction->type === 'debt_payment' ? (float) $transaction->amount : 0,
-                'paid' => 0,
-                'notes' => $transaction->notes,
-            ]))->sortBy(fn ($movement) => $movement->date.'-'.$movement->sort_order.'-'.str_pad($movement->sort_id, 12, '0', STR_PAD_LEFT))->values()
+            'number' => $invoice->invoice_no,
+            'date' => $invoice->invoice_date->toDateString(),
+            'sort_id' => $invoice->id,
+            'sort_order' => 0,
+            'type' => __('فاتورة'),
+            'invoiced' => (float) $invoice->amount,
+            'received' => 0,
+            'paid' => 0,
+            'notes' => null,
+        ])->concat($receipts->map(fn (Receipt $receipt) => (object) [
+            'number' => $receipt->receipt_no,
+            'date' => date('Y-m-d', strtotime($receipt->receipt_date)),
+            'sort_id' => $receipt->id,
+            'sort_order' => 1,
+            'type' => __('قبض'),
+            'invoiced' => 0,
+            'received' => (float) $receipt->amount,
+            'paid' => 0,
+            'notes' => $receipt->notes,
+        ]))->concat($payments->map(fn (Payment $payment) => (object) [
+            'number' => $payment->payment_no,
+            'date' => date('Y-m-d', strtotime($payment->payment_date)),
+            'sort_id' => $payment->id,
+            'sort_order' => 2,
+            'type' => __('صرف'),
+            'invoiced' => 0,
+            'received' => 0,
+            'paid' => (float) $payment->amount,
+            'notes' => $payment->notes,
+        ]))->concat($debtTransactions->map(fn (PartyDebtTransaction $transaction) => (object) [
+            'number' => 'DEBT-'.$transaction->id,
+            'date' => $transaction->transaction_date->toDateString(),
+            'sort_id' => $transaction->id,
+            'sort_order' => 3,
+            'type' => $transaction->type === 'borrowing' ? 'استدانة' : 'سداد ديون',
+            'invoiced' => $transaction->type === 'borrowing' ? (float) $transaction->amount : 0,
+            'received' => $transaction->type === 'debt_payment' ? (float) $transaction->amount : 0,
+            'paid' => 0,
+            'notes' => $transaction->notes,
+        ]))->sortBy(fn ($movement) => $movement->date.'-'.$movement->sort_order.'-'.str_pad($movement->sort_id, 12, '0', STR_PAD_LEFT))->values()
             ->map(function ($movement) use (&$runningBalance) {
                 $runningBalance += $movement->invoiced + $movement->paid - $movement->received;
                 $movement->balance = $runningBalance;
+
                 return $movement;
             });
 

@@ -2,270 +2,166 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Payment;
-use App\Models\Supplier;
-use App\Models\Customer;
+use App\Exports\ArrayExport;
 use App\Models\Cashbox;
 use App\Models\CashboxLog;
-use Illuminate\Support\Facades\DB;
-use App\Exports\ArrayExport;
+use App\Models\Customer;
+use App\Models\Payment;
+use App\Models\Supplier;
 use App\Services\DocumentExportService;
+use App\Services\VoucherCodeService;
+use App\Services\VoucherNumberService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class PaymentController extends Controller
 {
+    public function __construct(private VoucherNumberService $numbers) {}
+
     public function index()
     {
         $companyId = auth()->user()->company_id;
 
-        $payments = Payment::with(['customer', 'supplier', 'cashbox'])->where('company_id', $companyId)
-            ->latest()
-            ->get();
-        $customers = Customer::where('company_id', $companyId)->orderBy('name')->get();
-
-        $suppliers = Supplier::where('company_id', $companyId)
-            ->orderBy('name')
-            ->get();
-        $cashboxes = Cashbox::operational()->where('company_id', $companyId)->where('is_active', true)->orderBy('id')->get();
-
-        $year = now()->year;
-        $nextPaymentNumbers = $suppliers->mapWithKeys(fn ($party) => [
-            'supplier:'.$party->id => $this->nextPaymentNumber($companyId, 'supplier', $party->id, $year),
-        ])->toBase()->merge($customers->mapWithKeys(fn ($party) => [
-            'customer:'.$party->id => $this->nextPaymentNumber($companyId, 'customer', $party->id, $year),
-        ])->toBase());
-
         return view('payments.index', [
-            'suppliers' => $suppliers,
-            'customers' => $customers,
-            'payments' => $payments,
-            'nextPaymentNo' => "PAY-{$year}-000001",
-            'nextPaymentNumbers' => $nextPaymentNumbers,
-            'cashboxes' => $cashboxes,
+            'payments' => Payment::with(['customer', 'supplier', 'cashbox'])->where('company_id', $companyId)->latest()->get(),
+            'customers' => Customer::where('company_id', $companyId)->orderBy('name')->get(),
+            'suppliers' => Supplier::where('company_id', $companyId)->orderBy('name')->get(),
+            'cashboxes' => Cashbox::operational()->where('company_id', $companyId)->where('is_active', true)->orderBy('id')->get(),
+            'nextPaymentNo' => $this->numbers->preview($companyId, 'payment', now()->year),
         ]);
     }
 
     public function store(Request $request)
     {
         $companyId = auth()->user()->company_id;
-
-        $request->validate([
-            'payment_date' => ['required', 'date'],
-            'party_type' => ['required', 'in:customer,supplier'],
-            'party_id' => ['required', 'integer'],
-            'cashbox_id' => ['required', 'integer'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
-            'notes' => ['nullable', 'string'],
+        $data = $request->validate([
+            'payment_date' => ['required', 'date'], 'party_type' => ['required', 'in:customer,supplier'], 'party_id' => ['required', 'integer'],
+            'cashbox_id' => ['required', 'integer'], 'amount' => ['required', 'numeric', 'min:0.01'], 'notes' => ['nullable', 'string'],
         ]);
-
-        $party = $this->findParty($request->party_type, $request->party_id, $companyId);
-        $selectedCashbox = $this->findCashbox((int) $request->cashbox_id, $companyId);
-
-        DB::transaction(function () use ($companyId, $party, $request, $selectedCashbox) {
-            $party::whereKey($party->id)->lockForUpdate()->firstOrFail();
-            Payment::where('company_id', $companyId)
-                ->where($request->party_type.'_id', $party->id)
-                ->lockForUpdate()
-                ->get(['id']);
-
+        $party = $this->findParty($data['party_type'], $data['party_id'], $companyId);
+        $selectedCashbox = $this->findCashbox($data['cashbox_id'], $companyId);
+        DB::transaction(function () use ($companyId, $party, $data, $selectedCashbox) {
             $payment = Payment::create([
-                'company_id' => $companyId,
-                'cashbox_id' => $selectedCashbox->id,
-                'payment_no' => $this->nextPaymentNumber($companyId, $request->party_type, $party->id, (int) date('Y', strtotime($request->payment_date))),
-                'payment_date' => $request->payment_date,
-                'supplier_id' => $request->party_type === 'supplier' ? $party->id : null,
-                'customer_id' => $request->party_type === 'customer' ? $party->id : null,
-                'amount' => $request->amount,
-                'notes' => $request->notes,
+                'company_id' => $companyId, 'cashbox_id' => $selectedCashbox->id,
+                'payment_no' => $this->numbers->next($companyId, 'payment', (int) date('Y', strtotime($data['payment_date']))),
+                'payment_date' => $data['payment_date'], 'supplier_id' => $data['party_type'] === 'supplier' ? $party->id : null,
+                'customer_id' => $data['party_type'] === 'customer' ? $party->id : null, 'amount' => $data['amount'], 'notes' => $data['notes'] ?? null,
             ]);
-
             $cashbox = Cashbox::whereKey($selectedCashbox->id)->lockForUpdate()->firstOrFail();
-            $cashbox->decrement('balance', $request->amount);
-            $cashbox->refresh();
-
-            CashboxLog::create([
-                'company_id' => $companyId,
-                'cashbox_id' => $cashbox->id,
-                'type' => 'صرف',
-                'reference_no' => $payment->payment_no,
-                'person_name' => $party->name,
-                'amount' => $request->amount,
-                'balance_after' => $cashbox->balance,
-                'notes' => $request->notes,
-            ]);
+            $cashbox->decrement('balance', $data['amount']);
+            $this->log($cashbox->fresh(), $payment, $party->name, 'صرف', $data['notes'] ?? null);
         });
 
-        return redirect('/payments')
-            ->with('success', __('تم إضافة سند الصرف بنجاح'));
+        return redirect('/payments')->with('success', 'تم إضافة سند الصرف بنجاح');
     }
 
     public function edit(Payment $payment)
     {
+        $this->ensureCompany($payment);
+        abort_if($payment->status === 'cancelled', 422, 'لا يمكن تعديل سند ملغي.');
         $companyId = auth()->user()->company_id;
 
-        $this->ensurePaymentBelongsToCompany($payment);
-
-        $suppliers = Supplier::where('company_id', $companyId)
-            ->orderBy('name')
-            ->get();
-        $customers = Customer::where('company_id', $companyId)->orderBy('name')->get();
-        $cashboxes = Cashbox::operational()->where('company_id', $companyId)
-            ->where(fn ($query) => $query->where('is_active', true)->orWhereKey($payment->cashbox_id))
-            ->orderBy('id')->get();
-
         return view('payments.edit', [
-            'payment' => $payment,
-            'suppliers' => $suppliers,
-            'customers' => $customers,
-            'cashboxes' => $cashboxes,
+            'payment' => $payment, 'suppliers' => Supplier::where('company_id', $companyId)->orderBy('name')->get(),
+            'customers' => Customer::where('company_id', $companyId)->orderBy('name')->get(),
+            'cashboxes' => Cashbox::operational()->where('company_id', $companyId)->where(fn ($q) => $q->where('is_active', true)->orWhereKey($payment->cashbox_id))->orderBy('id')->get(),
         ]);
     }
 
     public function update(Request $request, Payment $payment)
     {
+        $this->ensureCompany($payment);
+        abort_if($payment->status === 'cancelled', 422, 'لا يمكن تعديل سند ملغي.');
         $companyId = auth()->user()->company_id;
-
-        $this->ensurePaymentBelongsToCompany($payment);
-
-        $request->validate([
-            'payment_date' => ['required', 'date'],
-            'party_type' => ['required', 'in:customer,supplier'],
-            'party_id' => ['required', 'integer'],
-            'cashbox_id' => ['required', 'integer'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
-            'notes' => ['nullable', 'string'],
+        $data = $request->validate([
+            'payment_date' => ['required', 'date'], 'party_type' => ['required', 'in:customer,supplier'], 'party_id' => ['required', 'integer'],
+            'cashbox_id' => ['required', 'integer'], 'amount' => ['required', 'numeric', 'min:0.01'], 'notes' => ['nullable', 'string'],
         ]);
-
-        $party = $this->findParty($request->party_type, $request->party_id, $companyId);
-        $selectedCashbox = $this->findCashbox((int) $request->cashbox_id, $companyId);
-
-        DB::transaction(function () use ($companyId, $party, $request, $payment, $selectedCashbox) {
-        $oldAmount = (float) $payment->amount;
-        $oldCashboxId = $payment->cashbox_id;
-
-        $partyOrYearChanged = $payment->party_type !== $request->party_type
-            || (int) $payment->{$request->party_type.'_id'} !== (int) $party->id
-            || (int) date('Y', strtotime($payment->payment_date)) !== (int) date('Y', strtotime($request->payment_date));
-
-        $payment->update([
-            'cashbox_id' => $selectedCashbox->id,
-            'payment_date' => $request->payment_date,
-            'supplier_id' => $request->party_type === 'supplier' ? $party->id : null,
-            'customer_id' => $request->party_type === 'customer' ? $party->id : null,
-            'amount' => $request->amount,
-            'notes' => $request->notes,
-            'payment_no' => $partyOrYearChanged
-                ? $this->nextPaymentNumber($companyId, $request->party_type, $party->id, (int) date('Y', strtotime($request->payment_date)))
-                : $payment->payment_no,
-        ]);
-
-        $cashboxes = Cashbox::withTrashed()->whereIn('id', array_filter(array_unique([$oldCashboxId, $selectedCashbox->id])))->lockForUpdate()->get()->keyBy('id');
-        $oldCashbox = $cashboxes->get($oldCashboxId);
-        $cashbox = $cashboxes->get($selectedCashbox->id);
-        if ($oldCashboxId === $selectedCashbox->id) {
-            $cashbox->decrement('balance', (float) $request->amount - $oldAmount);
-        } else {
-            $oldCashbox?->increment('balance', $oldAmount);
-            $cashbox->decrement('balance', (float) $request->amount);
-        }
-        $cashbox->refresh();
-
-        CashboxLog::create([
-            'company_id' => $companyId,
-            'cashbox_id' => $cashbox->id,
-            'type' => 'تعديل صرف',
-            'reference_no' => $payment->payment_no,
-            'person_name' => $party->name,
-            'amount' => $request->amount,
-            'balance_after' => $cashbox->balance,
-            'notes' => 'تم تعديل سند صرف',
-        ]);
+        $party = $this->findParty($data['party_type'], $data['party_id'], $companyId);
+        $selectedCashbox = $this->findCashbox($data['cashbox_id'], $companyId);
+        DB::transaction(function () use ($payment, $party, $data, $selectedCashbox, $companyId) {
+            $oldAmount = (float) $payment->amount;
+            $oldCashboxId = $payment->cashbox_id;
+            $payment->update(['cashbox_id' => $selectedCashbox->id, 'payment_date' => $data['payment_date'],
+                'supplier_id' => $data['party_type'] === 'supplier' ? $party->id : null, 'customer_id' => $data['party_type'] === 'customer' ? $party->id : null,
+                'amount' => $data['amount'], 'notes' => $data['notes'] ?? null, 'updated_by' => auth()->id()]);
+            $cashboxes = Cashbox::withTrashed()->where('company_id', $companyId)->whereIn('id', array_unique([$oldCashboxId, $selectedCashbox->id]))->lockForUpdate()->get()->keyBy('id');
+            $old = $cashboxes->get($oldCashboxId);
+            $current = $cashboxes->get($selectedCashbox->id);
+            if ($oldCashboxId === $selectedCashbox->id) {
+                $current->decrement('balance', (float) $data['amount'] - $oldAmount);
+            } else {
+                $old?->increment('balance', $oldAmount);
+                $current->decrement('balance', $data['amount']);
+            }
+            $this->log($current->fresh(), $payment, $party->name, 'تعديل صرف', 'تم تعديل سند صرف');
         });
 
-        return redirect('/payments')
-            ->with('success', __('تم تعديل سند الصرف بنجاح'));
+        return redirect('/payments')->with('success', 'تم تعديل سند الصرف بنجاح');
     }
 
-    public function destroy(Payment $payment)
+    public function destroy(Request $request, Payment $payment)
     {
-        $companyId = auth()->user()->company_id;
-
-        $this->ensurePaymentBelongsToCompany($payment);
-
-        DB::transaction(function () use ($companyId, $payment) {
-        $cashbox = Cashbox::withTrashed()->whereKey($payment->cashbox_id)
-            ->where('company_id', $companyId)->lockForUpdate()->first();
-        $cashbox?->increment('balance', $payment->amount);
-        $cashbox?->refresh();
-
-        CashboxLog::create([
-            'company_id' => $companyId,
-            'cashbox_id' => $cashbox?->id,
-            'type' => 'حذف صرف',
-            'reference_no' => $payment->payment_no,
-            'person_name' => $payment->party?->name ?? '-',
-            'amount' => $payment->amount,
-            'balance_after' => $cashbox?->balance ?? 0,
-            'notes' => 'تم حذف سند صرف',
-        ]);
-
-        $payment->delete();
+        $this->ensureCompany($payment);
+        $data = $request->validate(['cancellation_reason' => ['nullable', 'string', 'max:1000']]);
+        if ($payment->status === 'cancelled') {
+            return back()->with('success', 'السند ملغي مسبقًا.');
+        }
+        DB::transaction(function () use ($payment, $data) {
+            $cashbox = Cashbox::withTrashed()->whereKey($payment->cashbox_id)->where('company_id', $payment->company_id)->lockForUpdate()->first();
+            $cashbox?->increment('balance', $payment->amount);
+            if ($cashbox) {
+                $this->log($cashbox->fresh(), $payment, $payment->party?->name ?? '-', 'إلغاء صرف', $data['cancellation_reason'] ?? 'تم إلغاء سند صرف');
+            }
+            $payment->update(['status' => 'cancelled', 'cancelled_by' => auth()->id(), 'cancelled_at' => now(), 'cancellation_reason' => $data['cancellation_reason'] ?? null]);
         });
 
-        return redirect('/payments')
-            ->with('success', __('تم حذف سند الصرف'));
+        return redirect('/payments')->with('success', 'تم إلغاء سند الصرف مع الاحتفاظ بسجل التدقيق.');
     }
 
     public function print($id)
     {
-        $companyId = auth()->user()->company_id;
+        $payment = $this->findCompanyPayment($id);
 
-        $payment = Payment::where('id', $id)
-            ->where('company_id', $companyId)
-            ->firstOrFail();
-
-        return view('payments.print', compact('payment'));
+        return view('payments.print', $this->printData($payment));
     }
 
     public function pdf($id, DocumentExportService $exports)
     {
         $payment = $this->findCompanyPayment($id);
 
-        return $exports->pdf('payments.print', compact('payment'), 'payment-'.$payment->payment_no.'.pdf', 'landscape');
+        return $exports->pdf('payments.print', $this->printData($payment), 'payment-'.$payment->payment_no.'.pdf', 'landscape');
     }
 
     public function excel($id)
     {
         $payment = $this->findCompanyPayment($id);
-        $export = new ArrayExport(
-            [__('messages.reference'), __('messages.date'), __('messages.party'), __('messages.amount'), __('messages.notes')],
-            [[$payment->payment_no, $payment->payment_date, $payment->party?->name, $payment->amount, $payment->notes]],
-            'سند صرف',
-            $payment->company_id,
-        );
 
-        return Excel::download($export, 'payment-'.$payment->payment_no.'.xlsx');
+        return Excel::download(new ArrayExport([__('messages.reference'), __('messages.date'), __('messages.party'), __('messages.amount'), __('messages.notes')], [[$payment->payment_no, $payment->payment_date, $payment->party?->name, $payment->amount, $payment->notes]], 'سند صرف', $payment->company_id), 'payment-'.$payment->payment_no.'.xlsx');
+    }
+
+    private function printData(Payment $payment): array
+    {
+        $codes = app(VoucherCodeService::class);
+
+        return ['payment' => $payment->loadMissing(['company', 'cashbox', 'customer', 'supplier']), 'qrCode' => $codes->qrDataUri(route('documents.verify', $payment->verification_token)), 'barcode' => $codes->barcodeDataUri($payment->payment_no)];
     }
 
     private function findCompanyPayment($id): Payment
     {
-        return Payment::with(['customer', 'supplier'])
-            ->where('id', $id)
-            ->where('company_id', auth()->user()->company_id)
-            ->firstOrFail();
+        return Payment::with(['customer', 'supplier'])->whereKey($id)->where('company_id', auth()->user()->company_id)->firstOrFail();
     }
 
-    private function ensurePaymentBelongsToCompany(Payment $payment)
+    private function ensureCompany(Payment $payment): void
     {
-        if ($payment->company_id !== auth()->user()->company_id) {
-            abort(403, __('غير مسموح بالوصول إلى هذا السند'));
-        }
+        abort_unless((int) $payment->company_id === (int) auth()->user()->company_id, 403);
     }
 
     private function findParty(string $type, int $id, int $companyId)
     {
         $model = $type === 'customer' ? Customer::class : Supplier::class;
+
         return $model::whereKey($id)->where('company_id', $companyId)->firstOrFail();
     }
 
@@ -274,16 +170,8 @@ class PaymentController extends Controller
         return Cashbox::operational()->whereKey($id)->where('company_id', $companyId)->where('is_active', true)->firstOrFail();
     }
 
-    private function nextPaymentNumber(int $companyId, string $partyType, int $partyId, int $year): string
+    private function log(Cashbox $cashbox, Payment $payment, string $party, string $type, ?string $notes): void
     {
-        $prefix = "PAY-{$year}-";
-        $lastSequence = Payment::where('company_id', $companyId)
-            ->where($partyType.'_id', $partyId)
-            ->where('payment_no', 'like', $prefix.'%')
-            ->pluck('payment_no')
-            ->map(fn ($number) => (int) substr($number, -6))
-            ->max() ?? 0;
-
-        return $prefix.str_pad((string) ($lastSequence + 1), 6, '0', STR_PAD_LEFT);
+        CashboxLog::create(['company_id' => $payment->company_id, 'cashbox_id' => $cashbox->id, 'type' => $type, 'reference_no' => $payment->payment_no, 'person_name' => $party, 'amount' => $payment->amount, 'balance_after' => $cashbox->balance, 'notes' => $notes]);
     }
 }

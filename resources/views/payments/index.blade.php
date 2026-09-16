@@ -70,7 +70,7 @@
 <input
     type="text"
     id="paymentSearch"
-    placeholder="{{ __('بحث في سندات الصرف...') }}"
+    placeholder="ابحث برقم السند أو امسح الباركود"
     style="margin-bottom:20px">
 <table>
 <thead>
@@ -87,21 +87,21 @@
 
 <tbody>
 @foreach($payments as $payment)
-<tr>
+<tr data-document-number="{{ $payment->payment_no }}">
 <td>{{ $payment->payment_no }}</td>
 <td>{{ $payment->payment_date }}</td>
 <td>{{ $payment->party?->name ?? '-' }} <small>({{ $payment->party_type === 'customer' ? __('messages.customer') : __('messages.supplier') }})</small></td>
 <td>{{ $payment->cashbox?->name ?? __('حساب مالي قديم غير محدد') }}</td>
-<td style="color:#DC2626;font-weight:800">{{ number_format($payment->amount,2) }}</td>
+<td style="color:#DC2626;font-weight:800">{{ number_format($payment->amount,2) }}<br><small style="color:{{ $payment->status==='cancelled'?'#DC2626':'#15803D' }}">{{ $payment->status==='cancelled'?'ملغي':'فعال' }}</small></td>
 <td>{{ $payment->notes }}</td>
 <td>
     <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:nowrap;">
 
-        <a href="/payments/{{ $payment->id }}/edit"
+        @if($payment->status !== 'cancelled')<a href="/payments/{{ $payment->id }}/edit"
            class="btn"
            style="padding:10px 16px;white-space:nowrap;">
             {{ __('تعديل') }}
-        </a>
+        </a>@endif
 
         <a href="/payments/{{ $payment->id }}/print"
            class="btn"
@@ -113,22 +113,23 @@
         <a href="/payments/{{ $payment->id }}/pdf" class="btn" style="padding:10px 16px">PDF</a>
         <a href="/payments/{{ $payment->id }}/excel" class="btn" style="padding:10px 16px">Excel</a>
 
-        <form action="/payments/{{ $payment->id }}"
+        @if($payment->status !== 'cancelled')<form action="/payments/{{ $payment->id }}"
               method="POST"
               style="display:inline;margin:0;">
 
             @csrf
             @method('DELETE')
+            <input type="hidden" name="cancellation_reason" value="">
 
             <button type="submit"
                     class="danger"
                     style="font-family:'Tajawal',sans-serif;padding:10px 16px;border-radius:14px;font-weight:700;background:#DC2626;color:white;border:none;white-space:nowrap;"
-                    onclick="return confirm(@js(__('هل أنت متأكد من حذف السند؟')))"
+                    onclick="const reason=prompt('سبب الإلغاء (اختياري):');if(reason===null)return false;this.form.cancellation_reason.value=reason;return confirm('تأكيد إلغاء السند؟')"
             >
-                {{ __('حذف') }}
+                إلغاء
             </button>
 
-        </form>
+        </form>@endif
 
     </div>
 </td>
@@ -140,7 +141,7 @@
 
 </div>
 <script>
-const nextPaymentNumbers = @json($nextPaymentNumbers);
+const nextPaymentNo = @json($nextPaymentNo);
 const paymentCurrentYear = {{ now()->year }};
 const paymentParty = document.getElementById('paymentParty');
 const paymentDate = document.getElementById('paymentDate');
@@ -152,8 +153,8 @@ function updatePaymentNumberPreview() {
     const [type, id] = partyKey ? partyKey.split(':') : ['', ''];
     document.getElementById('paymentPartyType').value = type;
     document.getElementById('paymentPartyId').value = id;
-    paymentNumberPreview.value = year == paymentCurrentYear && partyKey && nextPaymentNumbers[partyKey]
-        ? nextPaymentNumbers[partyKey]
+    paymentNumberPreview.value = year == paymentCurrentYear
+        ? nextPaymentNo
         : `PAY-${year}-000001`;
 }
 

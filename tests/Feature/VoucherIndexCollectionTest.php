@@ -7,7 +7,6 @@ use App\Models\Customer;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -15,32 +14,24 @@ class VoucherIndexCollectionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_payments_page_combines_supplier_and_customer_numbers_as_a_base_collection(): void
+    public function test_payments_page_uses_one_company_wide_sequence_preview(): void
     {
-        [$user, $customer, $supplier] = $this->companyParties();
+        [$user] = $this->companyParties();
         $year = now()->year;
 
         $this->actingAs($user)->get('/payments')
             ->assertOk()
-            ->assertViewHas('nextPaymentNumbers', function ($numbers) use ($customer, $supplier, $year) {
-                return $numbers instanceof Collection
-                    && $numbers->get('supplier:'.$supplier->id) === "PAY-{$year}-000001"
-                    && $numbers->get('customer:'.$customer->id) === "PAY-{$year}-000001";
-            });
+            ->assertViewHas('nextPaymentNo', "PAY-{$year}-000001");
     }
 
-    public function test_receipts_page_combines_customer_and_supplier_numbers_as_a_base_collection(): void
+    public function test_receipts_page_uses_one_company_wide_sequence_preview(): void
     {
-        [$user, $customer, $supplier] = $this->companyParties();
+        [$user] = $this->companyParties();
         $year = now()->year;
 
         $this->actingAs($user)->get('/receipts')
             ->assertOk()
-            ->assertViewHas('nextReceiptNumbers', function ($numbers) use ($customer, $supplier, $year) {
-                return $numbers instanceof Collection
-                    && $numbers->get('customer:'.$customer->id) === "RCP-{$year}-000001"
-                    && $numbers->get('supplier:'.$supplier->id) === "RCP-{$year}-000001";
-            });
+            ->assertViewHas('nextReceiptNo', "RCP-{$year}-000001");
     }
 
     private function companyParties(): array

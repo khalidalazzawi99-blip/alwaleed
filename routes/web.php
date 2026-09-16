@@ -1,29 +1,29 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PartyDebtTransactionController;
+use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/daily_accounts.php';
 
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\SupplierController;
-use App\Http\Controllers\CashboxController;
-use App\Http\Controllers\ReceiptController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\BackupController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\ActivityLogController;
-use App\Http\Controllers\SettingController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BackupController;
+use App\Http\Controllers\CashboxController;
 use App\Http\Controllers\CompanyController;
-use App\Http\Controllers\SearchController;
-use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentVerificationController;
 use App\Http\Controllers\ExternalInvoiceController;
 use App\Http\Controllers\FeatureModuleController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ReceiptController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\VoucherAttachmentController;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +35,9 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
+Route::get('/verify/document/{token}', [DocumentVerificationController::class, 'show'])
+    ->middleware('throttle:30,1')
+    ->name('documents.verify');
 
 /*
 |--------------------------------------------------------------------------
@@ -49,7 +52,6 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::post('/logout', [AuthController::class, 'logout']);
 
-
 /*
 |--------------------------------------------------------------------------
 | تغيير اللغة
@@ -62,7 +64,7 @@ Route::post('/logout', [AuthController::class, 'logout']);
 
 Route::get('/language/{locale}', function (string $locale) {
 
-    if (!in_array($locale, ['ar', 'en'], true)) {
+    if (! in_array($locale, ['ar', 'en'], true)) {
         abort(404);
     }
 
@@ -73,7 +75,6 @@ Route::get('/language/{locale}', function (string $locale) {
     return back();
 
 })->name('language.switch');
-
 
 /*
 |--------------------------------------------------------------------------
@@ -97,7 +98,6 @@ Route::middleware(['auth'])->group(function () {
         '/admin/dashboard',
         [DashboardController::class, 'superAdmin']
     );
-
 
     /*
     |--------------------------------------------------------------------------
@@ -145,7 +145,6 @@ Route::middleware(['auth'])->group(function () {
         [CompanyController::class, 'destroy']
     );
 
-
     /*
     |--------------------------------------------------------------------------
     | الاشتراكات
@@ -167,7 +166,6 @@ Route::middleware(['auth'])->group(function () {
         [CompanyController::class, 'deactivate']
     );
 
-
     /*
     |--------------------------------------------------------------------------
     | النسخة الاحتياطية
@@ -179,7 +177,6 @@ Route::middleware(['auth'])->group(function () {
         [BackupController::class, 'download']
     );
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -227,7 +224,6 @@ Route::middleware(['auth', 'subscription'])->group(function () {
         [DashboardController::class, 'index']
     );
 
-
     /*
     |--------------------------------------------------------------------------
     | إدارة المستخدمين والإعدادات
@@ -256,7 +252,6 @@ Route::middleware(['auth', 'subscription'])->group(function () {
             [UserController::class, 'destroy']
         );
 
-
         /*
         | سجل النشاطات
         */
@@ -265,7 +260,6 @@ Route::middleware(['auth', 'subscription'])->group(function () {
             '/activity-logs',
             [ActivityLogController::class, 'index']
         );
-
 
         /*
         | الإعدادات
@@ -287,7 +281,6 @@ Route::middleware(['auth', 'subscription'])->group(function () {
         Route::post('/external-invoices/tokens', [ExternalInvoiceController::class, 'createToken'])->name('external-invoices.tokens.create');
         Route::delete('/external-invoices/tokens/{token}', [ExternalInvoiceController::class, 'revokeToken'])->name('external-invoices.tokens.revoke');
     });
-
 
     /*
     |--------------------------------------------------------------------------
@@ -326,7 +319,6 @@ Route::middleware(['auth', 'subscription'])->group(function () {
             Route::delete('/cashbox/{cashbox}', [CashboxController::class, 'destroy']);
         });
 
-
         /*
         | التقارير
         */
@@ -343,7 +335,6 @@ Route::middleware(['auth', 'subscription'])->group(function () {
 
         Route::get('/reports/pdf', [ReportController::class, 'pdf']);
         Route::get('/reports/excel', [ReportController::class, 'excel']);
-
 
         /*
         |--------------------------------------------------------------------------
@@ -384,7 +375,6 @@ Route::middleware(['auth', 'subscription'])->group(function () {
         Route::get('/receipts/{id}/pdf', [ReceiptController::class, 'pdf']);
         Route::get('/receipts/{id}/excel', [ReceiptController::class, 'excel']);
 
-
         /*
         |--------------------------------------------------------------------------
         | سندات الصرف
@@ -424,7 +414,6 @@ Route::middleware(['auth', 'subscription'])->group(function () {
         Route::get('/payments/{id}/pdf', [PaymentController::class, 'pdf']);
         Route::get('/payments/{id}/excel', [PaymentController::class, 'excel']);
     });
-
 
     /*
     |--------------------------------------------------------------------------
@@ -474,7 +463,6 @@ Route::middleware(['auth', 'subscription'])->group(function () {
 
         Route::get('/customers/{customer}/pdf', [CustomerController::class, 'pdf']);
         Route::get('/customers/{customer}/excel', [CustomerController::class, 'excel']);
-
 
         /*
         |--------------------------------------------------------------------------

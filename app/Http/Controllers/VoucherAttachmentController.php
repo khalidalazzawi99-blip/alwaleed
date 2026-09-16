@@ -13,10 +13,11 @@ class VoucherAttachmentController extends Controller
     public function index()
     {
         $companyId = auth()->user()->company_id;
+
         return view('voucher_attachments.index', [
             'attachments' => VoucherAttachment::where('company_id', $companyId)->latest()->get(),
-            'receipts' => Receipt::where('company_id', $companyId)->latest()->get(),
-            'payments' => Payment::where('company_id', $companyId)->latest()->get(),
+            'receipts' => Receipt::active()->where('company_id', $companyId)->latest()->get(),
+            'payments' => Payment::active()->where('company_id', $companyId)->latest()->get(),
         ]);
     }
 
@@ -37,6 +38,7 @@ class VoucherAttachmentController extends Controller
             'original_name' => $file->getClientOriginalName(), 'path' => $path,
             'mime_type' => $file->getMimeType(), 'size' => $file->getSize(),
         ]);
+
         return back()->with('success', 'تم رفع المرفق وربطه بالسند');
     }
 
@@ -44,6 +46,7 @@ class VoucherAttachmentController extends Controller
     {
         $this->ensureOwned($attachment);
         abort_unless(Storage::disk('local')->exists($attachment->path), 404);
+
         return Storage::disk('local')->download($attachment->path, $attachment->original_name);
     }
 
@@ -52,6 +55,7 @@ class VoucherAttachmentController extends Controller
         $this->ensureOwned($attachment);
         Storage::disk('local')->delete($attachment->path);
         $attachment->delete();
+
         return back()->with('success', 'تم حذف المرفق');
     }
 
