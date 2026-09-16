@@ -8,9 +8,7 @@ class CustomerBalanceService {
         $totalPayments=(float)$customer->payments()->where('company_id',$customer->company_id)->sum('amount');
         $totalBorrowed=(float)$customer->debtTransactions()->where('company_id',$customer->company_id)->where('type','borrowing')->sum('amount');
         $totalDebtPaid=(float)$customer->debtTransactions()->where('company_id',$customer->company_id)->where('type','debt_payment')->sum('amount');
-        $currentBalance=$totalInvoices > 0
-            ? $totalInvoices + $totalPayments - $totalReceipts + $totalBorrowed - $totalDebtPaid
-            : $totalReceipts - $totalPayments + $totalBorrowed - $totalDebtPaid;
+        $currentBalance=$totalInvoices + $totalPayments - $totalReceipts + $totalBorrowed - $totalDebtPaid;
         return compact('totalInvoices','totalReceipts','totalPayments','totalBorrowed','totalDebtPaid','currentBalance')
             + ['outstandingBalance'=>$currentBalance];
     }

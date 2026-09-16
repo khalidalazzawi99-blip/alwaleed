@@ -49,7 +49,7 @@ class PartyIndexBalancesTest extends TestCase
                     ->assertViewHas('balance', $remaining);
             };
 
-            $check(149.75);
+            $check($isCustomer ? -149.75 : 149.75);
             if ($isCustomer) {
                 foreach ([['active', 1000], ['cancelled', 5000]] as [$status, $amount]) {
                     ExternalInvoice::create(['company_id' => $company->id, 'customer_id' => $party->id,

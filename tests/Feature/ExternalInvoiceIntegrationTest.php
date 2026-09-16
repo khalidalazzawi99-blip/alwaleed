@@ -185,7 +185,7 @@ class ExternalInvoiceIntegrationTest extends TestCase
         $this->actingAs($user)->get('/customers/'.$otherCustomer->id)->assertForbidden();
     }
 
-    public function test_customer_with_receipts_only_has_a_positive_balance(): void
+    public function test_customer_receipts_always_reduce_the_balance(): void
     {
         $company = $this->company();
         $customer = $this->customer($company);
@@ -201,8 +201,8 @@ class ExternalInvoiceIntegrationTest extends TestCase
 
         $this->actingAs($user)->get('/customers/'.$customer->id)
             ->assertOk()
-            ->assertViewHas('balance', 375000.0)
-            ->assertSee('375,000.00');
+            ->assertViewHas('balance', -375000.0)
+            ->assertSee('-375,000.00');
     }
 
     public function test_invoice_appears_in_customer_movement_history_in_date_order(): void

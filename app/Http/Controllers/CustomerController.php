@@ -29,9 +29,8 @@ class CustomerController extends Controller
             ->get();
 
         $customers->each(function (Customer $customer) {
-            $customer->remaining_amount = (float) $customer->total_invoiced > 0
-                    ? (float) $customer->total_invoiced + (float) $customer->total_borrowed + (float) $customer->total_paid - (float) $customer->total_received - (float) $customer->total_debt_paid
-                    : (float) $customer->total_received - (float) $customer->total_paid + (float) $customer->total_borrowed - (float) $customer->total_debt_paid;
+            $customer->remaining_amount = (float) $customer->total_invoiced + (float) $customer->total_borrowed
+                + (float) $customer->total_paid - (float) $customer->total_received - (float) $customer->total_debt_paid;
             $customer->paid_amount = (float) $customer->total_received;
         });
 
@@ -158,10 +157,6 @@ class CustomerController extends Controller
             ->orderBy('invoice_date')->orderBy('id')->get();
         $totalInvoices = (float) $externalInvoices->sum('amount');
 
-        // Customers that are not linked to external invoices use a cash-style
-        // statement: receipts increase the balance and payments decrease it.
-        // Once invoices exist, the balance represents the outstanding amount.
-        $hasInvoices = $totalInvoices > 0;
         $runningBalance = 0;
         $movements = $externalInvoices->map(fn (ExternalInvoice $invoice) => (object) [
                 'number' => $invoice->invoice_no,
@@ -204,12 +199,8 @@ class CustomerController extends Controller
                 'paid' => 0,
                 'notes' => $transaction->notes,
             ]))->sortBy(fn ($movement) => $movement->date.'-'.$movement->sort_order.'-'.str_pad($movement->sort_id, 12, '0', STR_PAD_LEFT))->values()
-            ->map(function ($movement) use (&$runningBalance, $hasInvoices) {
-                $runningBalance += $movement->type === 'استدانة'
-                    ? $movement->invoiced
-                    : ($movement->type === 'سداد ديون'
-                        ? -$movement->received
-                        : ($hasInvoices ? $movement->invoiced + $movement->paid - $movement->received : $movement->received - $movement->paid));
+            ->map(function ($movement) use (&$runningBalance) {
+                $runningBalance += $movement->invoiced + $movement->paid - $movement->received;
                 $movement->balance = $runningBalance;
                 return $movement;
             });
