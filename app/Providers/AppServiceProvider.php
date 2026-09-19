@@ -27,6 +27,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
@@ -100,22 +101,31 @@ class AppServiceProvider extends ServiceProvider
         // Also prune once per day on normal web traffic, so retention works
         // even when the host has not configured Laravel's scheduler worker.
         if (! $this->app->runningInConsole()) {
-            Cache::remember(
-                'audit-log-pruned-'.now()->toDateString(),
-                now()->endOfDay(),
-                function () {
-                    ActivityLog::query()
-                        ->where('created_at', '<', now()->subDays(30))
-                        ->toBase()
-                        ->delete();
+            try {
+                // Housekeeping must never take the whole application down. Use
+                // the local file store for its daily marker so a cache-table
+                // problem does not run before the request has even started.
+                Cache::store('file')->remember(
+                    'audit-log-pruned-'.now()->toDateString(),
+                    now()->endOfDay(),
+                    function () {
+                        ActivityLog::query()
+                            ->where('created_at', '<', now()->subDays(30))
+                            ->toBase()
+                            ->delete();
 
-                    SystemNotification::query()
-                        ->where('created_at', '<', now()->subDays(30))
-                        ->delete();
+                        SystemNotification::query()
+                            ->where('created_at', '<', now()->subDays(30))
+                            ->delete();
 
-                    return true;
-                }
-            );
+                        return true;
+                    }
+                );
+            } catch (\Throwable $exception) {
+                Log::warning('Daily audit-log pruning failed; the request will continue.', [
+                    'exception' => $exception,
+                ]);
+            }
         }
     }
 }
