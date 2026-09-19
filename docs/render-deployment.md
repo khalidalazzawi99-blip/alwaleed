@@ -4,11 +4,7 @@ Create a Render PostgreSQL database, then configure these environment variables 
 
 ```text
 DB_CONNECTION=pgsql
-DB_HOST=<Render internal PostgreSQL hostname>
-DB_PORT=5432
-DB_DATABASE=<Render PostgreSQL database name>
-DB_USERNAME=<Render PostgreSQL username>
-DB_PASSWORD=<Render PostgreSQL password>
+DATABASE_URL=<Render Internal Database URL>
 DB_SSLMODE=require
 CACHE_STORE=file
 SESSION_DRIVER=file
@@ -19,11 +15,18 @@ INITIAL_ADMIN_EMAIL=<set in Render>
 INITIAL_ADMIN_PASSWORD=<temporary; remove after first setup>
 ```
 
-Copy `DB_HOST` from the database's current **Internal Database URL** in
-Render. Do not reuse a hostname from a deleted or replaced database. The short
-`dpg-...-a` hostname resolves only when the web service and database are in the
-same Render region/account. If the application is hosted elsewhere, use the
-host from **External Database URL** instead.
+Copy `DATABASE_URL` from the database's current **Internal Database URL** in
+Render. Do not reuse a URL or hostname from a deleted or replaced database. The
+short `dpg-...-a` hostname resolves only when the web service and database are
+in the same Render region/account. If the application is hosted elsewhere, use
+the **External Database URL** instead.
+
+The application gives `DATABASE_URL` precedence and retains `DB_URL` only as a
+legacy fallback. Prefer one complete URL instead of manually maintaining
+`DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD`. Remove
+stale `DATABASE_URL` / `DB_URL` values and stale individual `DB_*` values from
+the Render web service before adding the current URL, so an old host cannot be
+selected accidentally.
 
 After changing any database variable, redeploy the web service so Laravel's
 cached configuration is rebuilt. Keep `APP_DEBUG=false` in production; database
