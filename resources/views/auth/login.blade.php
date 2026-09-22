@@ -154,6 +154,13 @@ button:hover{
 opacity:.9;
 }
 
+.login-persistence{
+margin:14px 0 0;
+text-align:center;
+color:#8A8178;
+font-size:13px;
+}
+
 .error{
 background:#FEE2E2;
 color:#991B1B;
@@ -219,6 +226,7 @@ html[data-theme="dark"] .language-switch a{color:#BFC8D8}
 html[data-theme="dark"] .language-switch a.active{background:linear-gradient(135deg,#C9B59C,#AD9272);color:#172039}
 html[data-theme="dark"] button[type="submit"]{background:linear-gradient(135deg,#C9B59C,#AD9272);color:#172039}
 html[data-theme="dark"] .error{background:#47252B;color:#FECACA}
+html[data-theme="dark"] .login-persistence{color:#BFC8D8}
 
 @media(max-width:520px){
 .login-box{width:100%;padding:34px 24px;border-radius:20px}
@@ -279,6 +287,7 @@ required>
 {{ __('تسجيل الدخول') }}
 </button>
 
+<p class="login-persistence">{{ __('سيبقى تسجيل الدخول محفوظاً على هذا الجهاز حتى تختار تسجيل الخروج') }}</p>
 </form>
 
 </div>

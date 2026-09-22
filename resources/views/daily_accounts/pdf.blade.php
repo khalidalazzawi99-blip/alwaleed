@@ -5,7 +5,7 @@
 <style>
 @font-face { font-family: "Tajawal"; font-style: normal; font-weight: 400; src: url("data:font/truetype;base64,{{ base64_encode(file_get_contents(public_path('fonts/Tajawal-Regular.ttf'))) }}") format("truetype"); }
 @font-face { font-family: "Tajawal"; font-style: normal; font-weight: 700; src: url("data:font/truetype;base64,{{ base64_encode(file_get_contents(public_path('fonts/Tajawal-Bold.ttf'))) }}") format("truetype"); }
-@page { margin: 24px 30px 42px; }
+@page { margin: 24px 30px 46px; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: "Tajawal", "DejaVu Sans", sans-serif; font-size: 9px; color: #17233a; direction: rtl; }
 .header { width: 100%; border-collapse: collapse; margin-bottom: 13px; }
@@ -38,13 +38,15 @@ h1 { margin: 0; color: #17233a; font-size: 24px; font-weight: 700; }
 .ledger th { padding: 9px 6px; background: #e8ded1; color: #4f4437; border-left: 1px solid #ddd0bf; font-size: 8px; font-weight: 700; text-align: center; }
 .ledger th:first-child { border-radius: 0 6px 6px 0; }
 .ledger th:last-child { border-radius: 6px 0 0 6px; border-left: 0; }
-.ledger td { padding: 8px 6px; border-bottom: 1px solid #e6eaf0; text-align: center; vertical-align: middle; word-wrap: break-word; }
+.ledger td { padding: 8px 6px; border-bottom: 1px solid #e6eaf0; text-align: center; vertical-align: middle; word-wrap: break-word; line-height: 1.5; }
 .ledger tbody tr:nth-child(even) td { background: #fafbfd; }
 .ledger .date { direction: ltr; white-space: nowrap; }
 .ledger .money { direction: ltr; unicode-bidi: embed; white-space: nowrap; color: #17233a; font-weight: 700; }
 .ledger .notes { text-align: right; color: #596579; line-height: 1.5; }
 .empty { padding: 28px !important; color: #998c7c; background: #faf8f4; }
 .grand-total { width: 100%; margin-top: 12px; border-collapse: collapse; page-break-inside: avoid; }
+.header, .report-meta, .summary, .section-title { page-break-inside: avoid; }
+.section-title { page-break-after: avoid; }
 .grand-total td { padding: 12px 15px; border: 1px solid #d8dee8; background: #f1f4f8; }
 .grand-total .total-label { width: 62%; color: #596579; font-size: 11px; font-weight: 700; text-align: right; }
 .grand-total .total-value { width: 38%; color: #17233a; font-size: 17px; font-weight: 700; text-align: left; direction: ltr; unicode-bidi: embed; }

@@ -32,7 +32,7 @@ use App\Http\Controllers\VoucherAttachmentController;
 */
 
 Route::get('/', function () {
-    return redirect('/login');
+    return redirect(auth()->check() ? '/dashboard' : '/login');
 });
 
 Route::get('/verify/document/{token}', [DocumentVerificationController::class, 'show'])
@@ -442,6 +442,9 @@ Route::middleware(['auth', 'subscription'])->group(function () {
             '/customers',
             [CustomerController::class, 'store']
         );
+
+        Route::get('/customers/debtors/pdf', [CustomerController::class, 'debtorsPdf'])
+            ->name('customers.debtors.pdf');
 
         Route::get('/customers/{customer}/edit', [CustomerController::class, 'edit']);
         Route::put('/customers/{customer}', [CustomerController::class, 'update']);

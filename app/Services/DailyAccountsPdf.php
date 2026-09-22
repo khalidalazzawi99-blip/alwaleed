@@ -24,9 +24,11 @@ class DailyAccountsPdf
         $pdf->render();
         $canvas = $pdf->getDomPDF()->getCanvas();
         $font = $pdf->getDomPDF()->getFontMetrics()->getFont('Tajawal', 'normal');
-        $canvas->line(30, 570, 812, 570, [0.88, 0.84, 0.78], 0.5);
-        $canvas->page_text(30, 577, 'SIPPAR LIGHTS  |  DAILY ACCOUNTS', $font, 7, [0.55, 0.50, 0.44]);
-        $canvas->page_text(770, 577, '{PAGE_NUM} / {PAGE_COUNT}', $font, 8, [0.55, 0.50, 0.44]);
+        $width = $canvas->get_width();
+        $height = $canvas->get_height();
+        $canvas->line(28, $height - 28, $width - 28, $height - 28, [0.88, 0.84, 0.78], 0.5);
+        $canvas->page_text(28, $height - 20, 'SIPPAR LIGHTS  |  DAILY ACCOUNTS', $font, 7, [0.50, 0.54, 0.61]);
+        $canvas->page_text($width - 72, $height - 20, '{PAGE_NUM} / {PAGE_COUNT}', $font, 8, [0.50, 0.54, 0.61]);
 
         return $pdf->download($service->filename('pdf'));
     }

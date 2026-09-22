@@ -22,14 +22,29 @@ class DocumentExportService
             $html
         ) ?? $html;
 
-        return Pdf::setOptions([
+        $pdf = Pdf::setOptions([
             'defaultFont' => 'Tajawal',
             'defaultMediaType' => 'print',
             'isRemoteEnabled' => false,
             'isHtml5ParserEnabled' => true,
             'isPhpEnabled' => false,
         ])->loadHTML($html, 'UTF-8')
-            ->setPaper('a4', $orientation)
-            ->download($safeFilename);
+            ->setPaper('a4', $orientation);
+
+        $pdf->render();
+
+        $dompdf = $pdf->getDomPDF();
+        $canvas = $dompdf->getCanvas();
+        $font = $dompdf->getFontMetrics()->getFont('Tajawal', 'normal');
+        $width = $canvas->get_width();
+        $height = $canvas->get_height();
+
+        // Keep page metadata outside the document flow so long tables have a
+        // consistent footer without pushing their final row to another page.
+        $canvas->line(28, $height - 28, $width - 28, $height - 28, [0.88, 0.84, 0.78], 0.5);
+        $canvas->page_text(28, $height - 20, 'AL WALEED ERP', $font, 7, [0.50, 0.54, 0.61]);
+        $canvas->page_text($width - 72, $height - 20, '{PAGE_NUM} / {PAGE_COUNT}', $font, 8, [0.50, 0.54, 0.61]);
+
+        return $pdf->download($safeFilename);
     }
 }

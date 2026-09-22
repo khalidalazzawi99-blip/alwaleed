@@ -80,7 +80,13 @@ rows="4">{{ $setting->address ?? '' }}</textarea>
 
 <input
 type="file"
-name="company_logo">
+name="company_logo"
+accept="image/png,image/jpeg,image/webp">
+<small style="display:block;margin-top:8px;color:#8A8178">{{ __('يدعم PNG وJPG وWEBP بحد أقصى 5 ميغابايت، ويبقى الشعار محفوظاً حتى استبداله.') }}</small>
+
+@error('company_logo')
+<div style="margin-top:8px;color:#B91C1C;font-weight:700">{{ $message }}</div>
+@enderror
 
 @if(!empty($setting?->company_logo))
 

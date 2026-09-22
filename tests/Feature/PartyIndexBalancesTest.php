@@ -10,6 +10,39 @@ class PartyIndexBalancesTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_customers_can_be_filtered_to_outstanding_balances_and_exported_to_pdf(): void
+    {
+        $company = Company::create(['name' => 'Debtors', 'code' => 'DEBTORS', 'status' => 'active',
+            'subscription_start' => now()->subDay(), 'subscription_end' => now()->addMonth()]);
+        $user = User::factory()->create(['company_id' => $company->id, 'role' => 'admin']);
+        $debtor = Customer::create(['company_id' => $company->id, 'name' => 'Outstanding Customer']);
+        $settled = Customer::create(['company_id' => $company->id, 'name' => 'Settled Customer']);
+        $otherCompany = Company::create(['name' => 'Other debtors', 'code' => 'OTHER-DEBT', 'status' => 'active']);
+        $hidden = Customer::create(['company_id' => $otherCompany->id, 'name' => 'Hidden Debtor']);
+
+        foreach ([[$debtor, $company, 750], [$hidden, $otherCompany, 999]] as [$customer, $owner, $amount]) {
+            ExternalInvoice::create([
+                'company_id' => $owner->id,
+                'customer_id' => $customer->id,
+                'external_invoice_id' => 'debt-'.$customer->id,
+                'external_customer_id' => $customer->integration_id,
+                'invoice_no' => 'INV-'.$customer->id,
+                'invoice_date' => now(),
+                'amount' => $amount,
+                'status' => 'active',
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get('/customers?debts_only=1')->assertOk();
+        $customers = $response->viewData('customers');
+        $this->assertCount(1, $customers);
+        $this->assertTrue($customers->first()->is($debtor));
+        $response->assertSee('Outstanding Customer')->assertDontSee('Settled Customer')->assertDontSee('Hidden Debtor');
+
+        $pdf = $this->get('/customers/debtors/pdf')->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $pdf->getContent());
+    }
+
     public function test_lists_show_paid_and_remaining_amounts_matching_statements(): void
     {
         $company = Company::create(['name' => 'Balances', 'code' => 'BAL', 'status' => 'active',

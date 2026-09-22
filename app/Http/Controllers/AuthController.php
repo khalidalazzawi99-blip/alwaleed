@@ -10,6 +10,10 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
+        if (Auth::check()) {
+            return redirect('/dashboard');
+        }
+
         return view('auth.login');
     }
 
@@ -20,7 +24,9 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($credentials)) {
+        // Keep the user signed in across browser restarts. Laravel stores a
+        // rotating remember token, which is revoked by an explicit logout.
+        if (!Auth::attempt($credentials, true)) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors([
@@ -34,7 +40,7 @@ class AuthController extends Controller
 
         // مالك النظام لا يخضع لاشتراكات الشركات
         if ($user->role === 'super_admin') {
-            return redirect('/dashboard');
+            return redirect()->intended('/dashboard');
         }
 
         $company = $user->company;
@@ -99,7 +105,7 @@ class AuthController extends Controller
             ]);
         }
 
-        return redirect('/dashboard');
+        return redirect()->intended('/dashboard');
     }
 
     public function logout(Request $request)

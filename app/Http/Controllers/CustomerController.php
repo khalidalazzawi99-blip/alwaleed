@@ -15,10 +15,38 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class CustomerController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $companyId = auth()->user()->company_id;
+        $debtsOnly = $request->boolean('debts_only');
+        $customers = $this->customersWithBalances($companyId);
 
+        if ($debtsOnly) {
+            $customers = $customers->filter(fn (Customer $customer) => $customer->remaining_amount > 0)->values();
+        }
+
+        return view('customers.index', compact('customers', 'debtsOnly'));
+    }
+
+    public function debtorsPdf(DocumentExportService $exports)
+    {
+        $companyId = auth()->user()->company_id;
+        $customers = $this->customersWithBalances($companyId)
+            ->filter(fn (Customer $customer) => $customer->remaining_amount > 0)
+            ->sortByDesc('remaining_amount')
+            ->values();
+        $currency = Setting::where('company_id', $companyId)->value('currency') ?: 'IQD';
+
+        return $exports->pdf('customers.debtors-pdf', [
+            'companyId' => $companyId,
+            'customers' => $customers,
+            'currency' => $currency,
+            'totalOutstanding' => $customers->sum('remaining_amount'),
+        ], 'customers-outstanding-balances-'.now()->format('Ymd').'.pdf');
+    }
+
+    private function customersWithBalances(int $companyId)
+    {
         $customers = Customer::where('company_id', $companyId)
             ->withSum(['receipts as total_received' => fn ($query) => $query->where('company_id', $companyId)->where('status', 'active')], 'amount')
             ->withSum(['payments as total_paid' => fn ($query) => $query->where('company_id', $companyId)->where('status', 'active')], 'amount')
@@ -34,7 +62,7 @@ class CustomerController extends Controller
             $customer->paid_amount = (float) $customer->total_received;
         });
 
-        return view('customers.index', compact('customers'));
+        return $customers;
     }
 
     public function store(Request $request)
