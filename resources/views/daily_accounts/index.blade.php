@@ -31,7 +31,7 @@
 <p>جميع المؤشرات أدناه تخص السنة والعملة والفلاتر المحددة.</p>
 </form>
 <div class="da-stats">
-<div class="da-stat"><span>إجمالي المصروف</span><strong class="da-money da-dual-money">{!! $dualMoney($summary['total_iqd'], $summary['total_usd']) !!}</strong><small>الدينار أعلى والدولار أسفل</small></div>
+<div class="da-stat da-total-stat"><span>إجمالي المصروف</span><strong class="da-money da-dual-money">{!! $dualMoney($summary['total_iqd'], $summary['total_usd']) !!}</strong><small>الدينار أعلى والدولار أسفل</small></div>
 <div class="da-stat"><span>أعلى شخص صرف</span><strong>{{ $summary['top_person']?->party?->name ?? '—' }}</strong><small class="da-money da-dual-money">{!! $dualMoney($summary['top_person']?->total_iqd ?? 0, $summary['top_person']?->total_usd ?? 0) !!}</small></div>
 <div class="da-stat"><span>عدد الحركات</span><strong>{{ number_format($summary['count']) }}</strong><small>حركة مالية</small></div>
 <div class="da-stat"><span>أعلى شهر صرف</span><strong>{{ $summary['top_month']['name'] ?? '—' }}</strong><small class="da-money da-dual-money">{!! $dualMoney($summary['top_month']['total_iqd'] ?? 0, $summary['top_month']['total_usd'] ?? 0) !!}</small></div>
@@ -52,13 +52,13 @@
 <section class="da-panel"><h2>المصروف حسب الشهر · {{ $filters['year'] }}</h2><div class="da-chart"><canvas id="daily-month-chart" role="img" aria-label="الرسم البياني للمصروف حسب الشهر">البيانات متاحة في جدول الأشهر أعلاه.</canvas></div></section>
 </div>
 <section class="da-panel"><h2>الحركات اليومية <small>({{ number_format($expenses->total()) }})</small></h2>
-<div class="da-table-wrap"><table class="da-ledger"><thead><tr><th>التاريخ</th><th>اليوم</th><th>المبلغ المصروف</th><th>الحساب المالي</th><th>الجهة / الشخص</th><th>الملاحظات</th><th>رقم الشهر</th><th>الإجراءات</th></tr></thead><tbody>
+<div class="da-table-wrap"><table class="da-ledger"><thead><tr><th>التاريخ</th><th>اليوم</th><th>المبلغ المصروف</th><th>الجهة / الشخص</th><th>الملاحظات</th><th>رقم الشهر</th><th>الإجراءات</th></tr></thead><tbody>
 @forelse($expenses as $row)
-<tr><td>{{ $row->expense_date->format('Y-m-d') }}</td><td>{{ $row->expense_date->locale('ar')->translatedFormat('l') }}</td><td class="da-money"><span class="da-currency-line {{ strtolower($row->currency) }}">{{ $money($row->amount, $row->currency) }}</span></td><td>{{ $row->cashbox?->name ?? 'حركة قديمة غير مرتبطة' }}</td><td>{{ $row->party->name }}</td><td class="da-note">{{ $row->notes ?: '—' }}</td><td>{{ $row->expense_date->month }}</td><td><div class="da-row-actions">
+<tr><td>{{ $row->expense_date->format('Y-m-d') }}</td><td>{{ $row->expense_date->locale('ar')->translatedFormat('l') }}</td><td class="da-money"><span class="da-currency-line {{ strtolower($row->currency) }}">{{ $money($row->amount, $row->currency) }}</span></td><td>{{ $row->party->name }}</td><td class="da-note">{{ $row->notes ?: '—' }}</td><td>{{ $row->expense_date->month }}</td><td><div class="da-row-actions">
 @can('sippar.daily_accounts.update')<a class="da-btn" href="{{ route('sippar.daily-accounts.edit', $row->id, false) }}">تعديل</a>@endcan
 @can('sippar.daily_accounts.delete')<form method="post" action="{{ route('sippar.daily-accounts.destroy', $row->id, false) }}" data-confirm-delete>@csrf @method('DELETE')<button type="submit" class="da-danger">حذف</button></form>@endcan
 </div></td></tr>
-@empty<tr><td colspan="8" class="da-empty">لا توجد حركات مالية لشركة سيبار ضمن الفترة المحددة</td></tr>@endforelse
+@empty<tr><td colspan="7" class="da-empty">لا توجد حركات مالية لشركة سيبار ضمن الفترة المحددة</td></tr>@endforelse
 </tbody></table></div>
 <nav class="da-pagination" aria-label="صفحات الحركات">
 <span>عرض {{ $expenses->firstItem() ?? 0 }}–{{ $expenses->lastItem() ?? 0 }} من {{ $expenses->total() }}</span>

@@ -68,7 +68,7 @@ class DailyAccountsTest extends TestCase
         $this->actingAs($viewer)->get(route('sippar.daily-accounts.index'))->assertForbidden();
     }
 
-    public function test_expense_is_created_for_sippar_and_company_cannot_be_supplied_by_client(): void
+    public function test_expense_is_created_without_bank_effect_and_company_cannot_be_supplied_by_client(): void
     {
         [$sippar, $user] = $this->companyUser('SIPPAR', 'admin');
         [$other] = $this->companyUser('KUDIA', 'admin');
@@ -80,18 +80,17 @@ class DailyAccountsTest extends TestCase
             'amount' => 500000,
             'currency' => 'IQD',
             'party_id' => $party->id,
-            'cashbox_id' => $cashbox->id,
             'notes' => 'مصاريف سلندر',
         ])->assertSessionHasNoErrors()->assertRedirect();
 
         $this->assertDatabaseHas('daily_expenses', [
             'company_id' => $sippar->id,
             'party_id' => $party->id,
-            'cashbox_id' => $cashbox->id,
+            'cashbox_id' => null,
             'created_by' => $user->id,
             'amount' => 500000,
         ]);
-        $this->assertSame(500000.0, (float) $cashbox->fresh()->balance);
+        $this->assertSame(1000000.0, (float) $cashbox->fresh()->balance);
 
         $this->actingAs($user)->post(route('sippar.daily-accounts.store'), [
             'company_id' => $other->id,
@@ -118,7 +117,6 @@ class DailyAccountsTest extends TestCase
             'amount' => 250,
             'currency' => 'IQD',
             'party_id' => $sipparParty->id,
-            'cashbox_id' => $cashbox->id,
             'notes' => 'updated',
         ])->assertSessionHasNoErrors()->assertRedirect();
         $this->assertDatabaseHas('daily_expenses', ['id' => $sipparExpense->id, 'amount' => 250]);
@@ -126,7 +124,6 @@ class DailyAccountsTest extends TestCase
         $payload = [
             'expense_date' => '2026-06-10', 'amount' => 1, 'currency' => 'IQD',
             'party_id' => $sipparParty->id,
-            'cashbox_id' => $cashbox->id,
         ];
         $this->actingAs($user)->put(route('sippar.daily-accounts.update', $otherExpense), $payload)->assertNotFound();
         $this->actingAs($user)->delete(route('sippar.daily-accounts.destroy', $otherExpense))->assertNotFound();

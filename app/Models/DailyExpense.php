@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class DailyExpense extends Model
 {
-    protected $fillable = ['cashbox_id', 'expense_date', 'amount', 'currency', 'party_id', 'notes'];
+    protected $fillable = ['expense_date', 'amount', 'currency', 'party_id', 'notes'];
 
     protected function casts(): array
     {

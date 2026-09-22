@@ -21,7 +21,7 @@ class DailyExpenseRequest extends FormRequest
             'expense_date' => ['required', 'date_format:Y-m-d'],
             'amount' => ['required', 'numeric', 'gt:0', 'max:9999999999999999.99', 'decimal:0,2'],
             'currency' => ['required', Rule::in(config('daily_accounts.currencies'))],
-            'cashbox_id' => ['required', 'integer', Rule::exists('cashboxes', 'id')->where('company_id', $company->id)->whereNull('deleted_at')],
+            'cashbox_id' => ['prohibited'],
             'party_id' => ['required', 'integer', Rule::exists('daily_expense_parties', 'id')->where('company_id', $company->id)->where('is_active', true)],
             'notes' => ['nullable', 'string', 'max:5000'],
             'company_id' => ['prohibited'], 'created_by' => ['prohibited'],
