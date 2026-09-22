@@ -42,8 +42,8 @@
     <h2>{{ __('قائمة الزبائن') }}</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px">
         <a href="{{ url('/customers') }}" class="btn" style="{{ $debtsOnly ? '' : 'background:#CDBA9E;color:#17233a' }}">{{ __('كل الزبائن') }}</a>
-        <a href="{{ url('/customers?debts_only=1') }}" class="btn" style="{{ $debtsOnly ? 'background:#CDBA9E;color:#17233a' : '' }}">{{ __('عليهم مبالغ فقط') }}</a>
-        <a href="{{ route('customers.debtors.pdf') }}" class="btn">{{ __('PDF المبالغ المتبقية') }}</a>
+        <a href="{{ url('/customers?debts_only=1') }}" class="btn" style="{{ $debtsOnly ? 'background:#CDBA9E;color:#17233a' : '' }}">{{ __('المستحقين') }}</a>
+        <a href="{{ route('customers.debtors.pdf') }}" class="btn">{{ __('PDF المستحقين') }}</a>
     </div>
 <input
     type="text"
