@@ -8,17 +8,23 @@
         @page { size: A4 portrait; margin: 10mm 10mm 15mm; }
         html, body { direction: rtl; }
         body { background: #fff; font-size: 10px; }
-        .document { width: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
-        .top-gradient { margin: 0 0 8mm; }
+        .document { width: 190mm !important; max-width: 190mm !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; overflow: hidden; }
+        .top-gradient { width: 190mm; margin: 0 0 7mm; }
+        .document-header { width: 190mm; table-layout: fixed; }
+        .document-header .title-cell { width: 52%; padding-left: 4mm !important; }
+        .document-header .brand-cell { width: 48%; padding-right: 2mm !important; }
+        .document-title { font-size: 18px; line-height: 1.35; }
         .hero, .summary, .debt-table { direction: ltr; }
         .hero td, .summary td, .debt-table th, .debt-table td { direction: rtl; }
         .hero-main { text-align: right; }
         .hero-meta { width: 30%; text-align: left; }
+        .hero td { padding: 11px 13px; }
         .summary { border-spacing: 7px 0; margin-left: -7px; margin-right: -7px; }
         .debt-table { table-layout: fixed; }
+        .debt-table th, .debt-table td { padding: 8px 10px; }
         .debt-table .sequence { width: 10%; text-align: center; }
         .debt-table .customer { width: 58%; text-align: right; }
-        .debt-table .amount { width: 32%; direction: ltr; text-align: left; white-space: nowrap; }
+        .debt-table .amount { width: 32%; direction: ltr; text-align: center; white-space: nowrap; }
         .customer-name-part { display: block; line-height: 1.65; }
         .customer-name-part + .customer-name-part { color: #687386; font-size: 8px; }
     </style>
