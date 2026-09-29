@@ -145,7 +145,7 @@ class PaymentController extends Controller
     {
         $codes = app(VoucherCodeService::class);
 
-        return ['payment' => $payment->loadMissing(['company', 'cashbox', 'customer', 'supplier']), 'qrCode' => $codes->qrDataUri(route('documents.verify', $payment->verification_token)), 'barcode' => $codes->barcodeDataUri($payment->payment_no)];
+        return ['payment' => $payment->loadMissing(['cashbox', 'customer', 'supplier']), 'qrCode' => $codes->qrDataUri(route('documents.verify', $payment->verification_token)), 'barcode' => $codes->barcodeDataUri($payment->payment_no)];
     }
 
     private function findCompanyPayment($id): Payment

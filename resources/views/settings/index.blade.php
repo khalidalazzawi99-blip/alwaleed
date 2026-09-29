@@ -25,6 +25,9 @@ name="company_name"
 value="{{ $setting->company_name ?? '' }}">
 </div>
 
+<div><label>اسم الشركة بالعربية</label><input type="text" name="company_name_ar" dir="rtl" value="{{ old('company_name_ar', $setting->company_name_ar ?? '') }}"></div>
+<div><label>اسم الشركة بالإنكليزية</label><input type="text" name="company_name_en" dir="ltr" value="{{ old('company_name_en', $setting->company_name_en ?? '') }}"></div>
+
 <div>
 <label>{{ __('رقم الهاتف') }}</label>
 
@@ -97,6 +100,8 @@ src="{{ app(\App\Services\CompanyBrandService::class)->logoDataUri(auth()->user(
 style="height:90px;border-radius:14px">
 
 </div>
+
+<label style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" name="remove_logo" value="1" style="width:auto;margin:0"> حذف الشعار الحالي صراحةً</label>
 
 @endif
 

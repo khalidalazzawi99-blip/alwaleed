@@ -5,6 +5,7 @@
 <style>.statement-kpis{grid-template-columns:repeat(5,1fr)}@media(max-width:1100px){.statement-kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:560px){.statement-kpis{grid-template-columns:1fr}}</style>
 <style>
 .party-transactions{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.party-transaction{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:21px}.party-transaction h2{margin:0 0 16px;font-size:18px}.party-transaction-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.party-transaction-grid .wide{grid-column:1/-1}.party-transaction label{display:block;font-size:12px;font-weight:800;color:var(--text-soft);margin-bottom:7px}.party-transaction.deposit button{background:#15803d}.party-transaction.withdraw button{background:#b91c1c}@media(max-width:700px){.party-transactions,.party-transaction-grid{grid-template-columns:1fr}.party-transaction-grid .wide{grid-column:auto}}
+.movement-actions{display:flex;gap:6px;align-items:center}.movement-actions form{margin:0}.movement-actions .btn,.movement-actions button{padding:7px 10px;font-size:11px;white-space:nowrap}.movement-actions .delete-movement{background:#b91c1c;color:#fff}.statement-hero .bilingual-name{display:block}.statement-hero .bilingual-name-ar,.statement-hero .bilingual-name-en{display:block}.statement-hero .bilingual-name-en{font-size:.65em;color:#cbd5e1;text-align:right}
 </style>
 
 <div class="statement-shell">
@@ -12,7 +13,7 @@
         <div class="statement-identity">
             <div class="statement-avatar">{{ mb_substr($party->name, 0, 1) }}</div>
             <div>
-                <h1>{{ $party->name }}</h1>
+                <h1>@include('documents._bilingual-name', ['name' => $party->name])</h1>
                 <p>{{ $statementTitle }} · {{ __('messages.statement_subtitle') }}</p>
             </div>
         </div>
@@ -43,7 +44,7 @@
             <div class="party-transaction-grid">
                 <div><label>التاريخ</label><input type="date" name="transaction_date" value="{{ now()->toDateString() }}" required></div>
                 <div><label>المبلغ</label><input type="number" name="amount" min="0.01" step="0.01" required></div>
-                <div><label>ملاحظات</label><input type="text" name="notes" maxlength="1000"></div>
+                <div><label>ملاحظات</label><textarea name="notes" rows="2" maxlength="1000"></textarea></div>
                 <button class="wide" type="submit">تأكيد سداد الدين</button>
             </div>
         </form>
@@ -56,7 +57,7 @@
             <div class="party-transaction-grid">
                 <div><label>التاريخ</label><input type="date" name="transaction_date" value="{{ now()->toDateString() }}" required></div>
                 <div><label>المبلغ</label><input type="number" name="amount" min="0.01" step="0.01" required></div>
-                <div><label>ملاحظات</label><input type="text" name="notes" maxlength="1000"></div>
+                <div><label>ملاحظات</label><textarea name="notes" rows="2" maxlength="1000"></textarea></div>
                 <button class="wide" type="submit">تأكيد الاستدانة</button>
             </div>
         </form>
@@ -92,15 +93,29 @@
         </div>
         <div class="statement-table-wrap">
             <table class="statement-table">
-                <thead><tr><th>#</th><th>{{ __('messages.date') }}</th><th>{{ __('messages.reference') }}</th><th>{{ __('messages.movement_type') }}</th><th>{{ __('messages.invoiced') }}</th><th>{{ __('messages.received') }}</th><th>{{ __('messages.paid') }}</th><th>{{ __('messages.running_balance') }}</th><th>{{ __('messages.notes') }}</th></tr></thead>
+                <thead><tr><th>#</th><th>{{ __('messages.date') }}</th><th>{{ __('messages.reference') }}</th><th>{{ __('messages.movement_type') }}</th><th>{{ __('messages.invoiced') }}</th><th>{{ __('messages.received') }}</th><th>{{ __('messages.paid') }}</th><th>{{ __('messages.running_balance') }}</th><th>{{ __('messages.notes') }}</th><th>الإجراءات</th></tr></thead>
                 <tbody>
                 @forelse($movements as $index => $movement)
-                    <tr><td>{{ $index + 1 }}</td><td>{{ $movement->date }}</td><td>{{ $movement->number }}</td><td>{{ $movement->type }}</td><td>{{ $movement->invoiced ? number_format($movement->invoiced, 2) : '—' }}</td><td class="money-in">{{ $movement->received ? number_format($movement->received, 2) : '—' }}</td><td class="money-out">{{ $movement->paid ? number_format($movement->paid, 2) : '—' }}</td><td class="balance-value">{{ number_format($movement->balance, 2) }}</td><td class="notes-cell">{{ $movement->notes ?: '—' }}</td></tr>
+                    @php
+                        $editUrl = match($movement->resource) {
+                            'receipt' => url('/receipts/'.$movement->resource_id.'/edit'),
+                            'payment' => url('/payments/'.$movement->resource_id.'/edit'),
+                            'debt' => route('party-debt-transactions.edit', $movement->resource_id),
+                            default => null,
+                        };
+                        $deleteUrl = match($movement->resource) {
+                            'receipt' => url('/receipts/'.$movement->resource_id),
+                            'payment' => url('/payments/'.$movement->resource_id),
+                            'debt' => route('party-debt-transactions.destroy', $movement->resource_id),
+                            default => null,
+                        };
+                    @endphp
+                    <tr><td>{{ $index + 1 }}</td><td>{{ $movement->date }}</td><td>{{ $movement->number }}</td><td>{{ $movement->type }}</td><td>{{ $movement->invoiced ? number_format($movement->invoiced, 2) : '—' }}</td><td class="money-in">{{ $movement->received ? number_format($movement->received, 2) : '—' }}</td><td class="money-out">{{ $movement->paid ? number_format($movement->paid, 2) : '—' }}</td><td class="balance-value">{{ number_format($movement->balance, 2) }}</td><td class="notes-cell">{{ $movement->notes ?: '—' }}</td><td>@if($editUrl)<div class="movement-actions"><a class="btn" href="{{ $editUrl }}">تعديل</a><form method="POST" action="{{ $deleteUrl }}" data-confirm="هل تريد حذف هذه الحركة؟ سيتم تحديث الرصيد والحسابات المرتبطة بها.">@csrf @method('DELETE')<input type="hidden" name="cancellation_reason" value="حذف من سجل حركات الطرف"><button class="delete-movement" type="submit">حذف</button></form></div>@else<span class="muted">من النظام الخارجي</span>@endif</td></tr>
                 @empty
-                    <tr><td colspan="9" class="empty-row">{{ __('messages.no_movements') }}</td></tr>
+                    <tr><td colspan="10" class="empty-row">{{ __('messages.no_movements') }}</td></tr>
                 @endforelse
                 </tbody>
-                <tfoot><tr><td colspan="4">{{ __('messages.total') }}</td><td>{{ number_format($totalInvoiced, 2) }}</td><td class="money-in">{{ number_format($totalReceived, 2) }}</td><td class="money-out">{{ number_format($totalPaid, 2) }}</td><td>{{ number_format($balance, 2) }}</td><td></td></tr></tfoot>
+                <tfoot><tr><td colspan="4">{{ __('messages.total') }}</td><td>{{ number_format($totalInvoiced, 2) }}</td><td class="money-in">{{ number_format($totalReceived, 2) }}</td><td class="money-out">{{ number_format($totalPaid, 2) }}</td><td>{{ number_format($balance, 2) }}</td><td></td><td></td></tr></tfoot>
             </table>
         </div>
     </section>

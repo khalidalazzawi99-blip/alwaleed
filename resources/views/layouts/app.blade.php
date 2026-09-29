@@ -1841,6 +1841,48 @@ document.querySelectorAll('#appSidebar a').forEach((link) => {
     link.addEventListener('click', () => setSidebar(false));
 });
 
+// Forms are submitted only by an explicit button click. Enter never saves a
+// record; Shift+Enter remains available for multi-line fields.
+document.querySelectorAll('form[method]').forEach((form) => {
+    if ((form.method || 'get').toLowerCase() === 'get' || form.querySelector('input[name="_submission_token"]')) return;
+    const token = document.createElement('input');
+    token.type = 'hidden';
+    token.name = '_submission_token';
+    token.value = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    form.appendChild(token);
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || event.isComposing) return;
+    const field = event.target.closest('input, textarea, select, [contenteditable="true"]');
+    if (!field) return;
+    const multiline = field.matches('textarea, [contenteditable="true"]');
+    if (multiline && event.shiftKey) return;
+    event.preventDefault();
+});
+
+document.addEventListener('submit', (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || event.defaultPrevented) return;
+
+    const confirmation = form.dataset.confirm;
+    if (confirmation && !window.confirm(confirmation)) {
+        event.preventDefault();
+        return;
+    }
+
+    if (form.dataset.submitting === 'true') {
+        event.preventDefault();
+        return;
+    }
+
+    form.dataset.submitting = 'true';
+    form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach((button) => {
+        button.disabled = true;
+        button.setAttribute('aria-disabled', 'true');
+    });
+});
+
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         setSidebar(false);

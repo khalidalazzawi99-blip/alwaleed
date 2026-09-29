@@ -426,6 +426,12 @@ Route::middleware(['auth', 'subscription'])->group(function () {
 
         Route::post('/party-debt-transactions', [PartyDebtTransactionController::class, 'store'])
             ->name('party-debt-transactions.store');
+        Route::get('/party-debt-transactions/{transaction}/edit', [PartyDebtTransactionController::class, 'edit'])
+            ->name('party-debt-transactions.edit');
+        Route::put('/party-debt-transactions/{transaction}', [PartyDebtTransactionController::class, 'update'])
+            ->name('party-debt-transactions.update');
+        Route::delete('/party-debt-transactions/{transaction}', [PartyDebtTransactionController::class, 'destroy'])
+            ->name('party-debt-transactions.destroy');
 
         /*
         |--------------------------------------------------------------------------

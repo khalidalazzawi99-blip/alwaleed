@@ -9,6 +9,8 @@ class Setting extends Model
     protected $fillable = [
         'company_id',
         'company_name',
+        'company_name_ar',
+        'company_name_en',
         'company_logo',
         'phone',
         'email',

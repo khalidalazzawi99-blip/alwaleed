@@ -10,8 +10,8 @@
 </head>
 <body><main class="verify-card"><div class="bar"></div><div class="content">
     <div class="brand">
-        @if(($valid ?? false) && $document->company?->logo)<img src="{{ asset('storage/'.$document->company->logo) }}" alt="شعار الشركة">@endif
-        <div><h1>نظام الوليد</h1><p>التحقق الإلكتروني من المستندات</p></div>
+        @if(($valid ?? false) && ($brand['logo'] ?? null))<img src="{{ $brand['logo'] }}" alt="شعار الشركة">@endif
+        <div><h1>{{ ($brand['name_ar'] ?? null) ?: (($brand['name_en'] ?? null) ?: 'نظام الوليد') }}</h1><p>التحقق الإلكتروني من المستندات</p></div>
     </div>
     @if(!($valid ?? false))
         <div class="status invalid">تعذر التحقق من هذا السند</div>
@@ -22,7 +22,7 @@
             @else {{ $type === 'receipt' ? 'سند القبض صحيح وفعال' : 'سند الصرف صحيح وفعال' }} @endif
         </div>
         <table class="details">
-            <tr><td>اسم الشركة</td><td>{{ $document->company?->name }}</td></tr>
+            <tr><td>اسم الشركة</td><td><span dir="rtl">{{ $companyName }}</span></td></tr>
             <tr><td>نوع المستند</td><td>{{ $type === 'receipt' ? 'سند قبض' : 'سند صرف' }}</td></tr>
             <tr><td>رقم السند</td><td class="number">{{ $type === 'receipt' ? $document->receipt_no : $document->payment_no }}</td></tr>
             <tr><td>التاريخ</td><td>{{ ($type === 'receipt' ? $document->receipt_date : $document->payment_date)?->format('Y-m-d') }}</td></tr>

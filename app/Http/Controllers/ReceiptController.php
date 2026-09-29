@@ -158,7 +158,7 @@ class ReceiptController extends Controller
     {
         $codes = app(VoucherCodeService::class);
 
-        return ['receipt' => $receipt->loadMissing(['company', 'cashbox', 'customer', 'supplier']), 'qrCode' => $codes->qrDataUri(route('documents.verify', $receipt->verification_token)), 'barcode' => $codes->barcodeDataUri($receipt->receipt_no)];
+        return ['receipt' => $receipt->loadMissing(['cashbox', 'customer', 'supplier']), 'qrCode' => $codes->qrDataUri(route('documents.verify', $receipt->verification_token)), 'barcode' => $codes->barcodeDataUri($receipt->receipt_no)];
     }
 
     private function findCompanyReceipt($id): Receipt

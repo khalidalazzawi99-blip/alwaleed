@@ -2,6 +2,8 @@
 
 return [
 
+    'company_logo_disk' => env('COMPANY_LOGO_DISK', 'company_logos'),
+
     /*
     |--------------------------------------------------------------------------
     | Default Filesystem Disk
@@ -45,6 +47,20 @@ return [
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
+        ],
+
+        'company_logos' => [
+            'driver' => env('COMPANY_LOGO_DRIVER', 'local'),
+            'root' => env('COMPANY_LOGO_ROOT', storage_path('app/public')),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'visibility' => 'public',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'bucket' => env('AWS_BUCKET'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => true,
         ],
 
         's3' => [

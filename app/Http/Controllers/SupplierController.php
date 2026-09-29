@@ -143,6 +143,8 @@ class SupplierController extends Controller
             'number' => $receipt->receipt_no,
             'date' => $receipt->receipt_date,
             'sort_id' => $receipt->id,
+            'resource' => 'receipt',
+            'resource_id' => $receipt->id,
             'type' => __('قبض'),
             'invoiced' => 0,
             'received' => (float) $receipt->amount,
@@ -152,6 +154,8 @@ class SupplierController extends Controller
             'number' => $payment->payment_no,
             'date' => $payment->payment_date,
             'sort_id' => $payment->id,
+            'resource' => 'payment',
+            'resource_id' => $payment->id,
             'type' => __('صرف'),
             'invoiced' => 0,
             'received' => 0,
@@ -161,6 +165,8 @@ class SupplierController extends Controller
             'number' => 'DEBT-'.$transaction->id,
             'date' => $transaction->transaction_date->toDateString(),
             'sort_id' => $transaction->id,
+            'resource' => 'debt',
+            'resource_id' => $transaction->id,
             'type' => $transaction->type === 'borrowing' ? 'استدانة' : 'سداد ديون',
             'invoiced' => $transaction->type === 'borrowing' ? (float) $transaction->amount : 0,
             'received' => $transaction->type === 'debt_payment' ? (float) $transaction->amount : 0,
@@ -188,8 +194,8 @@ class SupplierController extends Controller
             'movementsCount' => $movements->count(),
             'from' => $filters['from'] ?? null,
             'to' => $filters['to'] ?? null,
-            'company' => $supplier->company,
-            'setting' => Setting::where('company_id', $supplier->company_id)->first(),
+            'companyId' => $supplier->company_id,
+            'currency' => Setting::where('company_id', $supplier->company_id)->value('currency') ?: 'IQD',
         ];
     }
 

@@ -68,11 +68,14 @@ class SettingController extends Controller
 
         $request->validate([
             'company_name' => ['nullable', 'string', 'max:255'],
+            'company_name_ar' => ['nullable', 'string', 'max:255'],
+            'company_name_en' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string'],
             'currency' => ['required', 'in:IQD,USD'],
             'company_logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'remove_logo' => ['nullable', 'boolean'],
         ]);
 
         $company = auth()->user()->company;
@@ -82,6 +85,8 @@ class SettingController extends Controller
         $data = [
             'company_id' => $companyId,
             'company_name' => $request->company_name ?: $company?->name ?: 'Company',
+            'company_name_ar' => $request->company_name_ar,
+            'company_name_en' => $request->company_name_en,
             'phone' => $request->phone,
             'email' => $request->email,
             'address' => $request->address,
@@ -90,36 +95,43 @@ class SettingController extends Controller
 
         $newLogoPath = null;
 
-        if ($request->hasFile('company_logo')) {
-            $newLogoPath = $request->file('company_logo')->store('logos', 'public');
+        if ($request->hasFile('company_logo') && $request->boolean('remove_logo')) {
+            throw ValidationException::withMessages(['company_logo' => 'اختر استبدال الشعار أو حذفه، وليس الاثنين معًا.']);
+        }
 
-            if (! $newLogoPath || ! Storage::disk('public')->exists($newLogoPath)) {
+        $logoDisk = Storage::disk(config('filesystems.company_logo_disk'));
+        if ($request->hasFile('company_logo')) {
+            $newLogoPath = $request->file('company_logo')->store('logos', config('filesystems.company_logo_disk'));
+
+            if (! $newLogoPath || ! $logoDisk->exists($newLogoPath)) {
                 throw ValidationException::withMessages([
                     'company_logo' => __('تعذر حفظ الشعار. يرجى المحاولة مرة أخرى.'),
                 ]);
             }
 
             $data['company_logo'] = $newLogoPath;
+        } elseif ($request->boolean('remove_logo')) {
+            $data['company_logo'] = null;
         }
 
         try {
-            DB::transaction(function () use ($companyId, $data, $newLogoPath, $company): void {
+            DB::transaction(function () use ($companyId, $data, $newLogoPath, $company, $request): void {
                 Setting::updateOrCreate(['company_id' => $companyId], $data);
 
-                if ($newLogoPath && $company) {
+                if ($company && ($newLogoPath || $request->boolean('remove_logo'))) {
                     $company->update(['logo' => $newLogoPath]);
                 }
             });
         } catch (Throwable $exception) {
             if ($newLogoPath) {
-                Storage::disk('public')->delete($newLogoPath);
+                $logoDisk->delete($newLogoPath);
             }
 
             throw $exception;
         }
 
-        if ($newLogoPath && $oldLogoPath && $oldLogoPath !== $newLogoPath) {
-            Storage::disk('public')->delete($oldLogoPath);
+        if (($newLogoPath || $request->boolean('remove_logo')) && $oldLogoPath && $oldLogoPath !== $newLogoPath) {
+            $logoDisk->delete($oldLogoPath);
         }
 
         return redirect('/settings')

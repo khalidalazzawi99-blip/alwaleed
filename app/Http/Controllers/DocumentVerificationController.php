@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Company;
 use App\Models\Payment;
 use App\Models\Receipt;
 use App\Models\Setting;
@@ -10,12 +11,12 @@ class DocumentVerificationController extends Controller
 {
     public function show(string $token)
     {
-        $document = Receipt::with(['company', 'customer', 'supplier'])
+        $document = Receipt::with(['customer', 'supplier'])
             ->where('verification_token', $token)->first();
         $type = 'receipt';
 
         if (! $document) {
-            $document = Payment::with(['company', 'customer', 'supplier'])
+            $document = Payment::with(['customer', 'supplier'])
                 ->where('verification_token', $token)->first();
             $type = 'payment';
         }
@@ -25,7 +26,9 @@ class DocumentVerificationController extends Controller
         }
 
         $currency = Setting::where('company_id', $document->company_id)->value('currency') ?: 'IQD';
+        $companyName = Company::whereKey($document->company_id)->value('name');
+        $brand = app(\App\Services\CompanyBrandService::class)->profile($document->company_id);
 
-        return view('documents.verify', compact('document', 'type', 'currency') + ['valid' => true]);
+        return view('documents.verify', compact('document', 'type', 'currency', 'brand', 'companyName') + ['valid' => true]);
     }
 }
