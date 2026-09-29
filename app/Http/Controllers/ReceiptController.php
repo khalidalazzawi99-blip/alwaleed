@@ -144,7 +144,7 @@ class ReceiptController extends Controller
     {
         $receipt = $this->findCompanyReceipt($id);
 
-        return $exports->pdf('receipts.print', $this->printData($receipt), 'receipt-'.$receipt->receipt_no.'.pdf', 'landscape');
+        return $exports->pdf('receipts.print', $this->printData($receipt), 'receipt-'.$receipt->receipt_no.'.pdf', 'landscape', 'a5');
     }
 
     public function excel($id)

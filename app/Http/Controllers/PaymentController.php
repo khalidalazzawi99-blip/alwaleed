@@ -131,7 +131,7 @@ class PaymentController extends Controller
     {
         $payment = $this->findCompanyPayment($id);
 
-        return $exports->pdf('payments.print', $this->printData($payment), 'payment-'.$payment->payment_no.'.pdf', 'landscape');
+        return $exports->pdf('payments.print', $this->printData($payment), 'payment-'.$payment->payment_no.'.pdf', 'landscape', 'a5');
     }
 
     public function excel($id)

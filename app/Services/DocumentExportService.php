@@ -8,7 +8,7 @@ use Illuminate\Http\Response;
 
 class DocumentExportService
 {
-    public function pdf(string $view, array $data, string $filename, string $orientation = 'portrait'): Response
+    public function pdf(string $view, array $data, string $filename, string $orientation = 'portrait', string $paper = 'a4'): Response
     {
         $safeFilename = preg_replace('/[^A-Za-z0-9._-]+/', '-', $filename) ?: 'export.pdf';
         $html = view($view, $data + ['pdfMode' => true])->render();
@@ -29,7 +29,7 @@ class DocumentExportService
             'isHtml5ParserEnabled' => true,
             'isPhpEnabled' => false,
         ])->loadHTML($html, 'UTF-8')
-            ->setPaper('a4', $orientation);
+            ->setPaper($paper, $orientation);
 
         $pdf->render();
 
