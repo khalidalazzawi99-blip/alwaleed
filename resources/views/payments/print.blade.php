@@ -1,4 +1,4 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>سند صرف</title>@include('documents._styles')<style>@page{size:A5 landscape;margin:7mm}</style></head><body><main class="document voucher-document">
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>سند صرف</title>@include('documents._styles')<style>@page{size:A5 landscape;margin:7mm 7mm 14mm}</style></head><body><main class="document voucher-document">
 @include('documents._header',['companyId'=>$payment->company_id,'documentTitle'=>'سند صرف'])
 <table class="hero" dir="ltr"><tr><td class="hero-meta" dir="rtl">رقم السند<strong>{{ $payment->payment_no }}</strong></td><td dir="rtl" style="text-align:right"><div class="hero-title">@include('documents._bilingual-name',['name'=>$payment->party?->name,'fallback'=>'سند صرف نقدي'])</div><div class="hero-subtitle">إيصال رسمي بصرف المبلغ المبين أدناه</div></td></tr></table>
 <table class="voucher-grid"><tr>

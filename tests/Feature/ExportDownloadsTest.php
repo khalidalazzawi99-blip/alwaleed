@@ -25,6 +25,10 @@ class ExportDownloadsTest extends TestCase
         foreach (["/receipts/{$receipt->id}/pdf", "/payments/{$payment->id}/pdf", '/reports/pdf', "/customers/{$customer->id}/pdf", "/suppliers/{$supplier->id}/pdf"] as $route) {
             $response = $this->get($route)->assertOk()->assertHeader('content-type', 'application/pdf');
             $this->assertStringStartsWith('%PDF-', $response->getContent(), $route);
+            if ($route !== '/reports/pdf') {
+                preg_match_all('/\/Type\s*\/Page\b/', $response->getContent(), $pages);
+                $this->assertCount(1, $pages[0], 'A short document must fit on one page: '.$route);
+            }
         }
 
         foreach (["/receipts/{$receipt->id}/excel", "/payments/{$payment->id}/excel", '/reports/excel', "/customers/{$customer->id}/excel", "/suppliers/{$supplier->id}/excel"] as $index => $route) {
@@ -44,6 +48,25 @@ class ExportDownloadsTest extends TestCase
                 unlink($path);
             }
         }
+    }
+
+    public function test_long_statements_paginate_without_clipping_the_table(): void
+    {
+        [$user, $customer] = $this->records();
+        for ($i = 1; $i <= 60; $i++) {
+            Receipt::create([
+                'company_id' => $customer->company_id,
+                'customer_id' => $customer->id,
+                'receipt_no' => 'R-LONG-'.$i,
+                'receipt_date' => now(),
+                'amount' => 100,
+                'notes' => 'Statement movement '.$i,
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get("/customers/{$customer->id}/pdf")->assertOk();
+        preg_match_all('/\/Type\s*\/Page\b/', $response->getContent(), $pages);
+        $this->assertGreaterThan(1, count($pages[0]));
     }
 
     private function records(): array

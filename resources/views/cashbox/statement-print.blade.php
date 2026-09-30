@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ __('messages.account_statement') }} — {{ $cashbox->name }}</title>
 @include('documents._styles')
 <style>
-@page{size:A4 landscape;margin:12mm}
+@page{size:A4 landscape;margin:10mm 10mm 14mm}
 .document{width:calc(100% - 40px);max-width:1100px;min-height:0;margin:20px auto;padding:24px}.top-gradient{margin:-24px -24px 20px}
 .bank-print-heading{display:flex;justify-content:space-between;gap:20px;margin:22px 0;border-bottom:1px solid #ddd;padding-bottom:16px}
 .bank-print-heading h2{margin:0 0 6px;font-size:22px}.bank-print-heading p{margin:4px 0;color:#657083;font-size:12px}
@@ -17,7 +17,20 @@
 .finance-in{color:#13714e}.finance-out{color:#a6323e}.balance-cell{font-weight:800}
 .finance-statement-table thead{display:table-header-group}.finance-statement-table tfoot{display:table-row-group}.finance-statement-table tr{break-inside:avoid}
 .print-note{font-size:10px;color:#657083;margin:16px 0}
-@media print{.document{margin:0;padding:0!important;max-width:none;box-shadow:none;border:0}.top-gradient{margin:0 0 20px}.actions{display:none!important}body{background:white}}
+@media print{
+    .document{width:auto!important;margin:0 auto!important;padding:0 3mm!important;max-width:none;box-shadow:none;border:0}
+    .top-gradient{margin:0 -3mm 4mm!important}
+    .bank-print-heading{margin:10px 0;padding-bottom:8px;break-inside:avoid}
+    .bank-print-heading h2{font-size:18px}
+    .bank-print-heading p{font-size:10px}
+    .bank-print-summary{margin:10px 0;page-break-inside:avoid}
+    .bank-print-summary td{padding:7px;font-size:10px}
+    .bank-print-summary strong{font-size:16px;margin-top:4px}
+    .finance-statement-table th,.finance-statement-table td{padding:5px;font-size:10px}
+    .finance-statement-table tr{page-break-inside:avoid}
+    .print-note{margin:7px 0;font-size:9px;page-break-inside:avoid}
+    .actions{display:none!important}body{background:white}
+}
 </style></head>
 <body><main class="document">
 @include('documents._header', ['companyId' => $cashbox->company_id, 'documentTitle' => __('messages.account_statement')])
