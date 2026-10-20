@@ -27,6 +27,7 @@ RUN php artisan config:clear || true
 
 EXPOSE 10000
 
-CMD php artisan migrate --force \
+CMD php artisan view:clear \
+    && php artisan migrate --force \
     && php artisan db:seed --class=AdminUserSeeder --force \
     && exec php artisan serve --host=0.0.0.0 --port=10000
