@@ -83,6 +83,31 @@ class BankAccountsTest extends TestCase
             ->assertViewHas('cashboxLogs', fn ($logs) => $logs->count() === 2);
     }
 
+    public function test_transaction_dates_are_used_in_statements_and_linked_vouchers(): void
+    {
+        [$company, $user, $customer] = $this->records();
+        $bank = $this->bank($company);
+        $bank->customers()->attach($customer);
+        foreach (['deposit', 'withdrawal'] as $type) {
+            foreach ([null, $customer->id] as $customerId) {
+                $this->actingAs($user)->post('/banks/'.$bank->id.'/transactions', [
+                    'type' => $type, 'amount' => 10, 'transaction_date' => '2025-12-15',
+                    'customer_id' => $customerId,
+                ])->assertRedirect()->assertSessionHasNoErrors();
+            }
+        }
+        $this->assertSame(4, CashboxLog::whereDate('transaction_date', '2025-12-15')->count());
+        $this->assertSame(1, Receipt::where('cashbox_id', $bank->id)->whereDate('receipt_date', '2025-12-15')->count());
+        $this->assertSame(1, \App\Models\Payment::where('cashbox_id', $bank->id)->whereDate('payment_date', '2025-12-15')->count());
+        $this->actingAs($user)->get('/banks/'.$bank->id.'/statement?from=2025-12-15&to=2025-12-15')
+            ->assertOk()->assertSee('2025-12-15')
+            ->assertViewHas('movements', fn ($rows) => $rows->count() === 4);
+        $this->actingAs($user)->post('/banks/'.$bank->id.'/transactions', [
+            'type' => 'deposit', 'amount' => 10, 'transaction_date' => '2025-02-30',
+        ])->assertSessionHasErrors('transaction_date');
+        $this->assertSame(1000.0, (float) $bank->fresh()->balance);
+    }
+
     public function test_invalid_and_foreign_account_operations_do_not_change_balances(): void
     {
         [$company, $user, $customer] = $this->records();

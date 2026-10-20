@@ -15,7 +15,10 @@ class CashboxLog extends Model
         'amount',
         'balance_after',
         'notes',
+        'transaction_date',
     ];
+
+    protected $casts = ['transaction_date' => 'date'];
 
     public function company()
     {

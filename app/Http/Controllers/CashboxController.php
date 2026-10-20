@@ -138,10 +138,13 @@ class CashboxController extends Controller
 
         $data = $request->validate([
             'type' => ['required', 'in:deposit,withdrawal'],
+            'transaction_date' => ['nullable', 'date_format:Y-m-d'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'customer_id' => ['nullable', 'integer'],
         ]);
+
+        $data['transaction_date'] ??= now()->toDateString();
 
         $customer = isset($data['customer_id'])
             ? Customer::whereKey($data['customer_id'])->where('company_id', auth()->user()->company_id)->firstOrFail()
@@ -179,10 +182,10 @@ class CashboxController extends Controller
                 ];
                 $voucherType = $data['type'] === 'deposit' ? 'receipt' : 'payment';
                 $reference = app(VoucherNumberService::class)
-                    ->next($lockedCashbox->company_id, $voucherType, now()->year);
+                    ->next($lockedCashbox->company_id, $voucherType, (int) substr($data['transaction_date'], 0, 4));
                 $voucher = $data['type'] === 'deposit'
-                    ? Receipt::create($voucherData + ['receipt_no' => $reference, 'receipt_date' => now()->toDateString()])
-                    : Payment::create($voucherData + ['payment_no' => $reference, 'payment_date' => now()->toDateString()]);
+                    ? Receipt::create($voucherData + ['receipt_no' => $reference, 'receipt_date' => $data['transaction_date']])
+                    : Payment::create($voucherData + ['payment_no' => $reference, 'payment_date' => $data['transaction_date']]);
             }
 
             CashboxLog::create([
@@ -196,6 +199,7 @@ class CashboxController extends Controller
                 'person_name' => $customer?->name ?? auth()->user()->name,
                 'amount' => $amount,
                 'balance_after' => $lockedCashbox->balance,
+                'transaction_date' => $data['transaction_date'],
                 'notes' => $data['notes'] ?? null,
             ]);
         });

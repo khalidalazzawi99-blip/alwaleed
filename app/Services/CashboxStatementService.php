@@ -75,7 +75,7 @@ class CashboxStatementService
         }
         foreach ($logs as $log) {
             $incoming = $log->type === 'إيداع مباشر';
-            $rows->push($this->row('transaction', $log->id, $log->created_at->toDateString(),
+            $rows->push($this->row('transaction', $log->id, ($log->transaction_date ?? $log->created_at)->toDateString(),
                 $log->created_at->format('H:i:s'), $log->reference_no,
                 __($incoming ? 'messages.deposit' : 'messages.withdrawal'), $log->person_name, $log->notes,
                 $incoming ? $this->cents($log->amount) : 0, $incoming ? 0 : $this->cents($log->amount)));
