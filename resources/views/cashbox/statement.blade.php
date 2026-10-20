@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('content')
 @include('cashbox._styles')
-<div class="finance-page">
+<div class="finance-page finance-statement-page">
     <header class="finance-hero">
         <div><h1>{{ __('messages.account_statement') }}</h1><p class="finance-subtitle">{{ __('messages.account_statement_intro') }}</p></div>
         <div class="finance-actions">
@@ -27,7 +27,7 @@
         <article><span>{{ __('messages.period_closing_balance') }}</span><strong><bdi>{{ number_format($closingBalance, 2) }}</bdi> <small>{{ $companyCurrency }}</small></strong></article>
     </div>
     <section class="finance-statement-panel">
-        <div class="finance-section-head"><div><h2>{{ __('messages.statement_transactions') }}</h2><p class="finance-subtitle">{{ $from ?: __('messages.all_dates') }} @if($to) — {{ $to }} @endif · {{ $companyCurrency }}</p></div><span class="finance-count">{{ $movements->count() }} {{ __('messages.movements_label') }}</span></div>
+        <div class="finance-section-head"><div><h2>{{ __('messages.statement_transactions') }}</h2><p class="finance-subtitle">{{ $from ?: __('messages.all_dates') }} @if($to) — {{ $to }} @endif · {{ $companyCurrency }}</p></div><div class="finance-actions"><span class="finance-order-label"><x-finance-icon name="history" /> {{ __('messages.newest_first') }}</span><span class="finance-count">{{ $movements->count() }} {{ __('messages.movements_label') }}</span></div></div>
         <div class="finance-table-wrap">@include('cashbox._statement-table')</div>
     </section>
     <p class="finance-statement-footnote">{{ __('messages.statement_effective_note') }}</p>

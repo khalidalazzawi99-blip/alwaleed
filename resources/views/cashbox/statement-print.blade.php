@@ -37,6 +37,7 @@
 <div class="bank-print-heading"><div><h2>{{ $cashbox->name }}</h2><p>{{ __($cashbox->account_type === 'bank' ? 'messages.bank_account' : 'messages.cash_account') }}@if($cashbox->account_number) · <bdi>{{ $cashbox->account_number }}</bdi>@endif</p></div><div><p>{{ __('messages.statement_period') }}</p><strong><bdi>{{ $from ?: __('messages.all_dates') }}</bdi>@if($to) — <bdi>{{ $to }}</bdi>@endif</strong><p>{{ $companyCurrency }}</p></div></div>
 <table class="bank-print-summary"><tr><td>{{ __('messages.period_opening_balance') }}<strong>{{ number_format($openingBalance, 2) }}</strong></td><td>{{ __('messages.statement_incoming') }}<strong class="finance-in">{{ number_format($totalIncoming, 2) }}</strong></td><td>{{ __('messages.statement_outgoing') }}<strong class="finance-out">{{ number_format($totalOutgoing, 2) }}</strong></td><td>{{ __('messages.period_closing_balance') }}<strong>{{ number_format($closingBalance, 2) }}</strong></td></tr></table>
 @include('cashbox._statement-table')
+<p class="print-note">{{ __('messages.newest_first') }}</p>
 <p class="print-note">{{ __('messages.statement_effective_note') }}</p>
 @include('documents._footer', ['companyId' => $cashbox->company_id])
 </main><div class="actions"><button onclick="window.print()">{{ __('messages.print_statement') }}</button></div></body></html>

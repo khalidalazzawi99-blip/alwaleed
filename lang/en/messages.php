@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'newest_first' => 'Newest first',
     'accounts_simple_intro' => 'Choose an account to make a transaction or view its statement.',
     'account_details' => 'Account',
     'account_actions' => 'Actions',

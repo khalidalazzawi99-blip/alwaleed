@@ -436,7 +436,7 @@
         <div class="stat-box">
 
             <div class="stat-top">
-                <p class="stat-title">{{ __('messages.cashbox_balance') }}</p>
+                <p class="stat-title">{{ __('messages.accounts_balance') }}</p>
                 <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 9h18"/><path d="M21 13h-5a2 2 0 0 0 0 4h5"/><path d="M17 15h.01"/></svg></div>
             </div>
 
@@ -454,7 +454,7 @@
         <div class="stat-box">
 
             <div class="stat-top">
-                <p class="stat-title">{{ __('messages.total_receipts') }}</p>
+                <p class="stat-title">{{ __('messages.total_incoming') }}</p>
                 <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></div>
             </div>
 
@@ -464,6 +464,7 @@
 
             <p class="stat-small">
                 {{ __('messages.receipt_count', ['count' => $receiptsCount]) }}
+                @if($directDepositsCount) · {{ $directDepositsCount }} {{ __('messages.deposit') }} @endif
             </p>
 
         </div>
@@ -472,7 +473,7 @@
         <div class="stat-box">
 
             <div class="stat-top">
-                <p class="stat-title">{{ __('messages.total_payments') }}</p>
+                <p class="stat-title">{{ __('messages.total_outgoing') }}</p>
                 <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15V3m-5 5 5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></div>
             </div>
 
@@ -482,6 +483,7 @@
 
             <p class="stat-small">
                 {{ __('messages.payment_count', ['count' => $paymentsCount]) }}
+                @if($directWithdrawalsCount) · {{ $directWithdrawalsCount }} {{ __('messages.withdrawal') }} @endif
             </p>
 
         </div>

@@ -35,7 +35,8 @@ class CashboxStatementTest extends TestCase
         $this->get($range)->assertOk()->assertViewHas('openingBalance', 1100.25)
             ->assertViewHas('closingBalance', 1325.50)->assertViewHas('totalIncoming', 275.50)
             ->assertViewHas('totalOutgoing', 50.25)->assertViewHas('movements', function ($rows) {
-                $this->assertEquals([1350.75, 1300.50, 1325.50], $rows->pluck('balance')->all());
+                $this->assertEquals([1325.50, 1300.50, 1350.75], $rows->pluck('balance')->all());
+                $this->assertEquals(['2026-09-03', '2026-09-03', '2026-09-02'], $rows->pluck('date')->all());
                 return $rows->count() === 3;
             });
         $this->get('/banks/'.$bank->id.'/statement/print?from=2026-09-02&to=2026-09-03')

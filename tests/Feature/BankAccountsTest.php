@@ -108,6 +108,33 @@ class BankAccountsTest extends TestCase
         $this->assertSame(1000.0, (float) $bank->fresh()->balance);
     }
 
+    public function test_dashboard_includes_direct_bank_movements_once_and_uses_their_dates(): void
+    {
+        [$company, $user, $customer] = $this->records();
+        $bank = $this->bank($company);
+        $bank->customers()->attach($customer);
+        $this->actingAs($user);
+        foreach ([
+            ['type' => 'deposit', 'amount' => 80],
+            ['type' => 'withdrawal', 'amount' => 30],
+            ['type' => 'deposit', 'amount' => 25, 'customer_id' => $customer->id],
+            ['type' => 'withdrawal', 'amount' => 10, 'customer_id' => $customer->id],
+            ['type' => 'deposit', 'amount' => 50, 'transaction_date' => now()->subMonthNoOverflow()->toDateString()],
+        ] as $data) {
+            $this->post('/banks/'.$bank->id.'/transactions', $data)->assertRedirect()->assertSessionHasNoErrors();
+        }
+        [$otherCompany] = $this->records('OTHER');
+        $foreignBank = $this->bank($otherCompany);
+        CashboxLog::create(['company_id' => $otherCompany->id, 'cashbox_id' => $foreignBank->id,
+            'type' => 'إيداع مباشر', 'amount' => 900, 'balance_after' => 1900]);
+        $this->get('/dashboard')->assertOk()
+            ->assertViewHas('totalReceipts', 155)->assertViewHas('totalPayments', 40)
+            ->assertViewHas('netMovement', 115)
+            ->assertViewHas('todayReceipts', 105)->assertViewHas('todayPayments', 40)
+            ->assertViewHas('monthReceipts', 105)->assertViewHas('monthPayments', 40)
+            ->assertViewHas('directDepositsCount', 2)->assertViewHas('directWithdrawalsCount', 1);
+    }
+
     public function test_invalid_and_foreign_account_operations_do_not_change_balances(): void
     {
         [$company, $user, $customer] = $this->records();

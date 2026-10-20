@@ -86,4 +86,19 @@
 .finance-statement-footnote{font-size:11px;color:var(--text-soft);line-height:1.7}
 @media(max-width:1150px){.finance-list-head{display:none}.finance-row{grid-template-columns:minmax(0,1fr) auto}.finance-row>.finance-actions{grid-column:1/-1;justify-content:flex-end}.finance-statement-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.finance-page{gap:16px}.finance-page h1{font-size:23px}.finance-hero>.finance-actions{width:100%}.finance-hero>.finance-actions>*{flex:1}.finance-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.finance-summary:not(.finance-statement-summary) article:first-child{grid-column:1/-1}.finance-summary article{padding:14px 16px}.finance-summary strong{font-size:21px}.finance-filter{width:100%}.finance-filter select{flex:1;min-width:0;width:auto}.finance-row{padding:17px;gap:14px}.finance-row-balance{display:block;text-align:end}.finance-row-balance strong{display:block;font-size:18px}.finance-row>.finance-actions{justify-content:flex-start;gap:6px}.finance-row .finance-button{padding:9px 10px;font-size:11px}.finance-form-grid{grid-template-columns:1fr}.finance-dialog-body,.finance-transaction,.finance-dialog-head{padding:18px}.finance-statement-identity{align-items:flex-start;flex-direction:column}.finance-statement-current{text-align:start}.finance-period-form{padding:16px}.finance-section-head{padding:17px}.finance-account-title .finance-icon-tile{width:38px;height:38px;flex-basis:38px}}
+.finance-statement-page .finance-statement-identity{padding:28px;border-inline-start:4px solid var(--accent);background:linear-gradient(120deg,color-mix(in srgb,var(--accent) 10%,var(--surface)),var(--surface));box-shadow:0 6px 24px #00000006}
+.finance-statement-page .finance-statement-current strong{font-size:30px;font-variant-numeric:tabular-nums}
+.finance-statement-page .finance-statement-summary article{position:relative;border-top:3px solid var(--accent);box-shadow:0 4px 16px #00000004}
+.finance-statement-page .finance-statement-summary article:nth-child(2){border-top-color:var(--fin-in)}
+.finance-statement-page .finance-statement-summary article:nth-child(3){border-top-color:var(--fin-out)}
+.finance-statement-page .finance-statement-summary article:last-child{background:var(--surface-soft)}
+.finance-order-label{display:inline-flex;align-items:center;gap:6px;color:var(--text-soft);font-size:11px}
+.finance-statement-page .finance-table-wrap{max-height:68vh;overflow:auto}
+.finance-statement-page .finance-statement-table thead{position:sticky;top:0;z-index:1}
+.finance-statement-page .finance-statement-table tbody tr:hover td{background:var(--surface-soft)}
+.finance-statement-page .statement-type{display:inline-flex;padding:4px 9px;border-radius:7px;line-height:1.6;background:var(--surface-soft)}
+.finance-statement-page .statement-incoming .statement-type{color:var(--fin-in);background:color-mix(in srgb,var(--fin-in) 10%,var(--surface))}
+.finance-statement-page .statement-outgoing .statement-type{color:var(--fin-out);background:color-mix(in srgb,var(--fin-out) 10%,var(--surface))}
+.finance-statement-page .finance-statement-table .statement-closing td{color:var(--text);font-weight:800;padding-block:17px}
+@media(max-width:700px){.finance-statement-page .finance-statement-identity{padding:20px}.finance-statement-page .finance-statement-current strong{font-size:25px}}
 </style>

@@ -38,7 +38,7 @@ class CashboxStatementService
             'cashbox' => $cashbox,
             'from' => $from,
             'to' => $to,
-            'movements' => $period,
+            'movements' => $period->reverse()->values(),
             'openingBalance' => $openingCents / 100,
             'closingBalance' => $runningCents / 100,
             'totalIncoming' => $period->sum('incomingCents') / 100,

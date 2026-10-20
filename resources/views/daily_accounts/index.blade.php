@@ -85,14 +85,21 @@ if (typeof Chart === 'undefined') return;
 const people = @json($summary['people']->map(fn($p) => ['name' => $p->party->name, 'iqd' => (float) $p->total_iqd, 'usd' => (float) $p->total_usd])->values());
 const months = @json($summary['months']);
 const format = (value, currency) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value) + ' ' + currency;
+const chartColors = () => { const style = getComputedStyle(document.documentElement); return { text: style.getPropertyValue('--text-soft').trim(), grid: style.getPropertyValue('--border').trim() }; };
 const draw = (id, labels, iqd, usd, horizontal) => new Chart(document.getElementById(id), {
 type: 'bar', data: { labels, datasets: [{ label: 'IQD', data: iqd, backgroundColor: '#b6a082', borderRadius: 5, maxBarThickness: 28 }, { label: 'USD', data: usd, backgroundColor: '#597d69', borderRadius: 5, maxBarThickness: 28 }] },
 options: { indexAxis: horizontal ? 'y' : 'x', responsive: true, maintainAspectRatio: false,
-plugins: { legend: { display: true }, tooltip: { rtl: true, textDirection: 'rtl', callbacks: { label: ctx => format(horizontal ? ctx.parsed.x : ctx.parsed.y, ctx.dataset.label) } } },
-scales: { x: { beginAtZero: true, grid: { color: '#f2eee7' } }, y: { beginAtZero: true, grid: { display: false } } } }
+plugins: { legend: { display: true, labels: { color: chartColors().text } }, tooltip: { rtl: true, textDirection: 'rtl', callbacks: { label: ctx => format(horizontal ? ctx.parsed.x : ctx.parsed.y, ctx.dataset.label) } } },
+scales: { x: { beginAtZero: true, ticks: { color: chartColors().text }, grid: { color: chartColors().grid } }, y: { beginAtZero: true, ticks: { color: chartColors().text }, grid: { display: false } } } }
 });
-draw('daily-people-chart', people.map(p => p.name), people.map(p => p.iqd), people.map(p => p.usd), true);
-draw('daily-month-chart', months.map(m => m.name), months.map(m => Number(m.total_iqd)), months.map(m => Number(m.total_usd)), false);
+const charts = [draw('daily-people-chart', people.map(p => p.name), people.map(p => p.iqd), people.map(p => p.usd), true),
+draw('daily-month-chart', months.map(m => m.name), months.map(m => Number(m.total_iqd)), months.map(m => Number(m.total_usd)), false)];
+new MutationObserver(() => charts.forEach(chart => {
+    const colors = chartColors();
+    chart.options.plugins.legend.labels.color = colors.text;
+    for (const axis of ['x', 'y']) { chart.options.scales[axis].ticks.color = colors.text; chart.options.scales[axis].grid.color = colors.grid; }
+    chart.update('none');
+})).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 })();
 </script>
 @endsection

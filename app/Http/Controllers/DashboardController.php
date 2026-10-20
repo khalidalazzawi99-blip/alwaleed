@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cashbox;
+use App\Models\CashboxLog;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Payment;
@@ -122,6 +123,18 @@ class DashboardController extends Controller
             ->whereDate('payment_date', today())
             ->sum('amount');
 
+        $directMovements = CashboxLog::where('company_id', $companyId)
+            ->whereIn('type', ['إيداع مباشر', 'سحب مباشر'])
+            ->get(['type', 'amount', 'transaction_date', 'created_at']);
+        $deposits = $directMovements->where('type', 'إيداع مباشر');
+        $withdrawals = $directMovements->where('type', 'سحب مباشر');
+        $totalReceipts += $deposits->sum('amount');
+        $totalPayments += $withdrawals->sum('amount');
+        $directDepositsCount = $deposits->count();
+        $directWithdrawalsCount = $withdrawals->count();
+        $onDate = fn ($log) => ($log->transaction_date ?? $log->created_at)->toDateString() === today()->toDateString();
+        $todayReceipts += $deposits->filter($onDate)->sum('amount');
+        $todayPayments += $withdrawals->filter($onDate)->sum('amount');
         $todayNet = $todayReceipts - $todayPayments;
 
         /*
@@ -140,6 +153,9 @@ class DashboardController extends Controller
             ->whereMonth('payment_date', now()->month)
             ->sum('amount');
 
+        $inMonth = fn ($log) => ($log->transaction_date ?? $log->created_at)->format('Y-m') === now()->format('Y-m');
+        $monthReceipts += $deposits->filter($inMonth)->sum('amount');
+        $monthPayments += $withdrawals->filter($inMonth)->sum('amount');
         $monthNet = $monthReceipts - $monthPayments;
 
         /*
@@ -166,6 +182,8 @@ class DashboardController extends Controller
         */
 
         return view('dashboard', [
+            'directDepositsCount' => $directDepositsCount,
+            'directWithdrawalsCount' => $directWithdrawalsCount,
 
             'company' => $company,
 
