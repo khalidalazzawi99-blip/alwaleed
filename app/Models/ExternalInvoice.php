@@ -3,8 +3,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 class ExternalInvoice extends Model {
     protected $touches=['customer'];
-    protected $fillable=['company_id','customer_id','external_invoice_id','external_customer_id','invoice_no','invoice_name','order_no','invoice_date','amount','currency','status'];
-    protected function casts(): array { return ['invoice_date'=>'date','amount'=>'decimal:2']; }
+    protected $fillable=['company_id','customer_id','external_invoice_id','external_customer_id','invoice_no','invoice_name','order_no','invoice_date','amount','currency','status','provider','subtotal','notes','payload'];
+    protected function casts(): array { return ['invoice_date'=>'date','amount'=>'decimal:2','subtotal'=>'decimal:2','payload'=>'array']; }
     public function customer(){ return $this->belongsTo(Customer::class)->withTrashed(); }
     public function company(){ return $this->belongsTo(Company::class); }
 }

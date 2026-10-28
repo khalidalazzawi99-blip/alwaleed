@@ -4,6 +4,7 @@ use App\Http\Controllers\PartyDebtTransactionController;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/daily_accounts.php';
+require __DIR__.'/kudia.php';
 
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AuthController;

@@ -8,7 +8,7 @@ class VoucherNumberService
 {
     public function next(int $companyId, string $type, int $year): string
     {
-        $prefix = $type === 'receipt' ? 'RCP' : 'PAY';
+        $prefix = $this->prefix($type);
 
         DB::table('voucher_sequences')->insertOrIgnore([
             'company_id' => $companyId,
@@ -43,6 +43,15 @@ class VoucherNumberService
             ->where('year', $year)
             ->value('last_number');
 
-        return sprintf('%s-%d-%06d', $type === 'receipt' ? 'RCP' : 'PAY', $year, $last + 1);
+        return sprintf('%s-%d-%06d', $this->prefix($type), $year, $last + 1);
+    }
+
+    private function prefix(string $type): string
+    {
+        return match ($type) {
+            'receipt' => 'RCP',
+            'kudia_invoice' => 'KUD',
+            default => 'PAY',
+        };
     }
 }

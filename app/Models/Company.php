@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Company extends Model
 {
+    public function isKudia(): bool
+    {
+        return strcasecmp((string) $this->code, 'KUDIA') === 0;
+    }
+
     public function isSippar(): bool
     {
         return strcasecmp((string) $this->code, config('daily_accounts.company_code')) === 0;
@@ -43,6 +48,14 @@ class Company extends Model
     {
         if (!array_key_exists($key, config('features.modules', []))) {
             return false;
+        }
+
+        if ($key === 'kudia_factory' && $this->isKudia()) {
+            $feature = $this->relationLoaded('features')
+                ? $this->features->firstWhere('feature_key', $key)?->enabled
+                : $this->features()->where('feature_key', $key)->value('enabled');
+
+            return $feature === null ? true : (bool) $feature;
         }
 
         if ($this->relationLoaded('features')) {

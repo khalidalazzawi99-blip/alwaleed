@@ -29,6 +29,10 @@ class DashboardController extends Controller
             return redirect('/admin/dashboard');
         }
 
+        if ($user->company?->isKudia() && $user->company->hasFeature('kudia_factory')) {
+            return redirect()->route('kudia.index');
+        }
+
         $companyId = $user->company_id;
         $company = $user->company;
         $currency = Setting::where('company_id', $companyId)->value('currency') ?: 'IQD';

@@ -2,6 +2,7 @@
 
 return [
     'modules' => [
+        'kudia_factory' => ['icon' => '🏭', 'name' => 'مصنع كوديا', 'description' => 'زبائن وفواتير مصنع كوديا بتصميم خاص وكشوفات حساب مرتبطة بالتسديدات'],
         'inventory' => ['icon' => '📦', 'name' => 'messages.feature_inventory', 'description' => 'messages.feature_inventory_description'],
         'sales' => ['icon' => '🛒', 'name' => 'messages.feature_sales', 'description' => 'messages.feature_sales_description'],
         'purchases' => ['icon' => '🧾', 'name' => 'messages.feature_purchases', 'description' => 'messages.feature_purchases_description'],

@@ -1635,6 +1635,10 @@ html[dir="ltr"] .menu-section::after{
 
             @php($activeCompany = auth()->user()->company)
             @if($activeCompany)
+                @if($activeCompany->hasFeature('kudia_factory'))
+                    <div class="menu-section">مصنع كوديا</div>
+                    <a href="{{ route('kudia.index') }}" class="{{ request()->is('kudia*') ? 'active' : '' }}"><span class="module-icon" aria-hidden="true">🏭</span> فواتير وزبائن كوديا</a>
+                @endif
                 @foreach(['inventory','sales','purchases','payroll','projects','installments'] as $featureKey)
                     @if($activeCompany->hasFeature($featureKey))
                         <a href="/modules/{{ $featureKey }}" class="{{ request()->is('modules/'.$featureKey.'*') ? 'active' : '' }}">
@@ -1658,6 +1662,10 @@ html[dir="ltr"] .menu-section::after{
             auth()->user()->role == 'admin' ||
             auth()->user()->role == 'data_entry'
         )
+
+            @if(auth()->user()->role === 'data_entry' && auth()->user()->company?->hasFeature('kudia_factory'))
+                <a href="{{ route('kudia.index') }}" class="{{ request()->is('kudia*') ? 'active' : '' }}">🏭 فواتير وزبائن كوديا</a>
+            @endif
 
             <div class="menu-section">
                 {{ __('messages.clients') }}

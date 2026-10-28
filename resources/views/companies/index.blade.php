@@ -127,6 +127,7 @@
         </p>
     </div>
 
+    <a href="/admin/companies/create?template=kudia" class="btn">+ مصنع كوديا</a>
     <a href="/admin/companies/create" class="btn">
         {{ __('+ إضافة شركة') }}
     </a>

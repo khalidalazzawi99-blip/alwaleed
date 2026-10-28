@@ -119,7 +119,7 @@
             <input
                 type="text"
                 name="name"
-                value="{{ old('name') }}"
+                value="{{ old('name', request('template') === 'kudia' ? 'مصنع كوديا' : '') }}"
                 placeholder="{{ __('مثال: شركة أضواء سيبار') }}"
                 required
             >
@@ -132,7 +132,7 @@
             <input
                 type="text"
                 name="code"
-                value="{{ old('code') }}"
+                value="{{ old('code', request('template') === 'kudia' ? 'KUDIA' : '') }}"
                 placeholder="{{ __('مثال: SIPPAR') }}"
                 required
             >
