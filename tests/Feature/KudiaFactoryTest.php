@@ -17,6 +17,34 @@ class KudiaFactoryTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_sippar_activation_uses_the_existing_company_customers_and_accounts(): void
+    {
+        [$company, $user, $customer] = $this->records();
+        $company->update(['code' => 'SIPPAR', 'name' => 'أضواء سيبار']);
+        $other = Company::create(['name' => 'Other company', 'code' => 'UNRELATED', 'status' => 'active']);
+        $companyCount = Company::count();
+        $customerCount = Customer::count();
+        $userCount = User::count();
+        $migration = require database_path('migrations/2026_10_28_180000_enable_kudia_factory_for_sippar.php');
+        $migration->up();
+        $migration->up();
+
+        $this->assertTrue($company->fresh()->hasFeature('kudia_factory'));
+        $this->assertFalse($other->fresh()->hasFeature('kudia_factory'));
+        $this->assertSame($companyCount, Company::count());
+        $this->assertSame($customerCount, Customer::count());
+        $this->assertSame($userCount, User::count());
+        $this->assertSame(1, CompanyFeature::where('company_id', $company->id)->where('feature_key', 'kudia_factory')->count());
+        $this->actingAs($user->fresh())->get('/dashboard')->assertOk();
+        $this->get('/kudia')->assertOk()->assertSee('مصنع كوديا');
+        $this->get('/kudia/customers')->assertOk()->assertSee($customer->name);
+        $this->post('/kudia/invoices', $this->payload($customer))->assertRedirect();
+        $invoice = ExternalInvoice::sole();
+        $this->assertSame($company->id, $invoice->company_id);
+        $this->assertSame($customer->id, $invoice->customer_id);
+        $this->get('/customers/'.$customer->id)->assertOk()->assertViewHas('balance', 2160000.0);
+    }
+
     public function test_company_setup_prefills_kudia_and_creates_an_independent_manager_account(): void
     {
         $owner = User::factory()->create(['role' => 'super_admin', 'company_id' => null]);
