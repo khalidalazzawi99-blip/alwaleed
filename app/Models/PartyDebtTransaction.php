@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class PartyDebtTransaction extends Model
 {
+    protected $touches = ['customer'];
+
     protected $fillable = [
         'company_id', 'customer_id', 'supplier_id', 'type',
         'transaction_date', 'amount', 'notes',

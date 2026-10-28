@@ -10,6 +10,30 @@ class PartyIndexBalancesTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_direct_debt_repayment_is_included_in_paid_amount_and_settled_customer_is_not_a_debtor(): void
+    {
+        $company = Company::create(['name' => 'Repayments', 'code' => 'REPAY', 'status' => 'active',
+            'subscription_start' => now()->subDay(), 'subscription_end' => now()->addMonth()]);
+        $user = User::factory()->create(['company_id' => $company->id, 'role' => 'admin']);
+        $customer = Customer::create(['company_id' => $company->id, 'name' => 'Settled by direct repayment']);
+        foreach (['borrowing' => 0.30, 'debt_payment' => 0.20] as $type => $amount) {
+            \App\Models\PartyDebtTransaction::create([
+                'company_id' => $company->id, 'customer_id' => $customer->id,
+                'type' => $type, 'amount' => $amount, 'transaction_date' => now(),
+            ]);
+        }
+        Receipt::create(['company_id' => $company->id, 'customer_id' => $customer->id,
+            'receipt_no' => 'FINAL', 'receipt_date' => now(), 'amount' => 0.10]);
+
+        $this->actingAs($user)->get('/customers')->assertOk()
+            ->assertViewHas('customers', fn ($rows) => $rows->sole()->paid_amount === 0.30
+                && $rows->sole()->remaining_amount === 0.0);
+        $this->get('/customers/'.$customer->id)->assertOk()->assertViewHas('balance', 0.0);
+        $this->get('/customers?debts_only=1')->assertOk()
+            ->assertViewHas('customers', fn ($rows) => $rows->isEmpty());
+        $this->assertSame(0.0, app(\App\Services\CustomerBalanceService::class)->calculate($customer)['currentBalance']);
+    }
+
     public function test_customers_can_be_filtered_to_outstanding_balances_and_exported_to_pdf(): void
     {
         $company = Company::create(['name' => 'Debtors', 'code' => 'DEBTORS', 'status' => 'active',

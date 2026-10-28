@@ -205,6 +205,41 @@ class ExternalInvoiceIntegrationTest extends TestCase
             ->assertSee('-375,000.00');
     }
 
+    public function test_filtered_customer_statement_carries_forward_balance_before_repayment(): void
+    {
+        $company = $this->company();
+        $customer = $this->customer($company);
+        $this->invoice($company, $customer, 'OPENING', 1000)->update(['invoice_date' => '2026-09-01']);
+        $this->receipt($company, $customer, 200)->update(['receipt_date' => '2026-09-02']);
+        $this->payment($company, $customer, 50)->update(['payment_date' => '2026-09-03']);
+        foreach (['borrowing' => 100, 'debt_payment' => 150] as $type => $amount) {
+            \App\Models\PartyDebtTransaction::create([
+                'company_id' => $company->id, 'customer_id' => $customer->id,
+                'transaction_date' => '2026-09-04', 'type' => $type, 'amount' => $amount,
+            ]);
+        }
+        $this->receipt($company, $customer, 900)->update(['receipt_date' => '2026-09-05', 'status' => 'cancelled']);
+        $this->invoice($company, $customer, 'CANCELLED', 5000)->update(['invoice_date' => '2026-09-01', 'status' => 'cancelled']);
+        $this->receipt($company, $customer, 300)->update(['receipt_date' => '2026-10-01']);
+        $this->receipt($company, $customer, 500)->update(['receipt_date' => '2026-11-01']);
+        $user = User::factory()->create(['company_id' => $company->id, 'role' => 'admin']);
+        $this->actingAs($user);
+
+        foreach (['', '/print'] as $suffix) {
+            $this->get('/customers/'.$customer->id.$suffix.'?from=2026-10-01&to=2026-10-31')
+                ->assertOk()->assertViewHas('openingBalance', 800.0)
+                ->assertViewHas('balance', 500.0)->assertViewHas('totalReceived', 300)
+                ->assertSee('800.00')->assertSee('500.00')
+                ->assertViewHas('movements', fn ($movements) => $movements->count() === 1 && $movements[0]->balance === 500.0);
+        }
+
+        $this->get('/customers/'.$customer->id.'?from=2026-10-02&to=2026-10-31')
+            ->assertOk()->assertViewHas('openingBalance', 500.0)->assertViewHas('balance', 500.0)
+            ->assertViewHas('movementsCount', 0);
+        $this->get('/customers/'.$customer->id)->assertOk()->assertViewHas('openingBalance', 0.0)
+            ->assertViewHas('balance', 0.0);
+    }
+
     public function test_invoice_appears_in_customer_movement_history_in_date_order(): void
     {
         $company = $this->company();
@@ -345,6 +380,80 @@ class ExternalInvoiceIntegrationTest extends TestCase
             ->assertJsonPath('data.0.bank_id', $bank->integration_id)->assertJsonPath('meta.last_page', 2);
         $this->withToken($plain)->getJson('/api/v1/external-customers?updated_since='.urlencode($future))->assertJsonCount(0, 'data');
         $this->withToken($plain)->getJson('/api/v1/external-banks?updated_since='.urlencode($future))->assertJsonCount(0, 'data');
+    }
+
+    public function test_incremental_customer_feed_updates_after_debt_and_payment_changes(): void
+    {
+        $company = $this->company();
+        $customer = $this->customer($company);
+        [$plain] = $this->credential($company);
+        $this->invoice($company, $customer, 'SYNC-DEBT', 1000);
+
+        foreach (['borrowing', 'debt_payment', 'payment'] as $type) {
+            $this->travel(2)->seconds();
+            $since = now()->toIso8601String();
+            $this->travel(2)->seconds();
+            $movement = $type === 'payment'
+                ? $this->payment($company, $customer, 100)
+                : \App\Models\PartyDebtTransaction::create([
+                    'company_id' => $company->id, 'customer_id' => $customer->id,
+                    'type' => $type, 'transaction_date' => now(), 'amount' => 100,
+                ]);
+
+            $check = function (string $since, int $expected) use ($plain, $customer) {
+                $this->withToken($plain)->getJson('/api/v1/external-customers?updated_since='.urlencode($since))
+                    ->assertOk()->assertJsonPath('meta.total', 1)
+                    ->assertJsonPath('data.0.customer_id', $customer->integration_id)
+                    ->assertJsonPath('data.0.balance', $expected);
+            };
+            $check($since, $type === 'debt_payment' ? 900 : 1100);
+
+            $this->travel(2)->seconds();
+            $since = now()->toIso8601String();
+            $this->travel(2)->seconds();
+            $movement->update(['amount' => 200]);
+            $check($since, $type === 'debt_payment' ? 800 : 1200);
+
+            $this->travel(2)->seconds();
+            $since = now()->toIso8601String();
+            $this->travel(2)->seconds();
+            $movement->delete();
+            $check($since, 1000);
+        }
+        $this->travelBack();
+    }
+
+    public function test_reassigning_a_movement_updates_both_customer_balances_in_incremental_sync(): void
+    {
+        $company = $this->company();
+        $original = $this->customer($company);
+        $destination = $this->customer($company);
+        [$plain] = $this->credential($company);
+
+        foreach (['receipt', 'payment', 'debt', 'invoice'] as $type) {
+            $movement = match ($type) {
+                'receipt' => $this->receipt($company, $original, 100),
+                'payment' => $this->payment($company, $original, 100),
+                'invoice' => $this->invoice($company, $original, 'MOVED', 100),
+                'debt' => \App\Models\PartyDebtTransaction::create([
+                    'company_id' => $company->id, 'customer_id' => $original->id,
+                    'type' => 'debt_payment', 'transaction_date' => now(), 'amount' => 100,
+                ]),
+            };
+            $this->travel(2)->seconds();
+            $since = now()->toIso8601String();
+            $this->travel(2)->seconds();
+            $movement->update(['customer_id' => $destination->id]);
+
+            $response = $this->withToken($plain)
+                ->getJson('/api/v1/external-customers?updated_since='.urlencode($since))
+                ->assertOk()->assertJsonPath('meta.total', 2);
+            $rows = collect($response->json('data'))->keyBy('customer_id');
+            $this->assertSame(0, $rows[$original->integration_id]['balance']);
+            $this->assertSame(in_array($type, ['receipt', 'debt']) ? -100 : 100, $rows[$destination->integration_id]['balance']);
+            $movement->delete();
+        }
+        $this->travelBack();
     }
 
     public function test_legacy_external_customer_id_field_is_temporarily_accepted(): void

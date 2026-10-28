@@ -95,6 +95,9 @@
             <table class="statement-table">
                 <thead><tr><th>#</th><th>{{ __('messages.date') }}</th><th>{{ __('messages.reference') }}</th><th>{{ __('messages.movement_type') }}</th><th>{{ __('messages.invoiced') }}</th><th>{{ __('messages.received') }}</th><th>{{ __('messages.paid') }}</th><th>{{ __('messages.running_balance') }}</th><th>{{ __('messages.notes') }}</th><th>الإجراءات</th></tr></thead>
                 <tbody>
+                @if(isset($openingBalance) && $from)
+                    <tr><td colspan="7">{{ __('messages.period_opening_balance') }}</td><td class="balance-value">{{ number_format($openingBalance, 2) }}</td><td colspan="2"></td></tr>
+                @endif
                 @forelse($movements as $index => $movement)
                     @php
                         $editUrl = match($movement->resource) {

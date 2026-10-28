@@ -7,6 +7,8 @@ use Illuminate\Support\Str;
 
 class Payment extends Model
 {
+    protected $touches = ['customer'];
+
     protected $fillable = [
         'company_id',
         'cashbox_id',

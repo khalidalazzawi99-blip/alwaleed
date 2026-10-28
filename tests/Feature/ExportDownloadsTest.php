@@ -17,6 +17,40 @@ class ExportDownloadsTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_statement_pdf_positions_arabic_headings_and_first_column_on_the_right_with_readable_type(): void
+    {
+        [$user, $customer] = $this->records();
+        $frames = [];
+        $this->app->resolving('dompdf', function ($renderer) use (&$frames) {
+            $renderer->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$frames) {
+                $node = $frame->get_node();
+                if (! $node instanceof \DOMElement) {
+                    return;
+                }
+                foreach (['title-cell', 'brand-cell', 'document-title', 'hero-main', 'hero-meta', 'sequence', 'movement-notes', 'amount'] as $class) {
+                    if (in_array($class, explode(' ', $node->getAttribute('class')), true)) {
+                        $frames[$class][] = [
+                            'x' => $frame->get_position()['x'],
+                            'align' => $frame->get_style()->text_align,
+                            'fontSize' => $frame->get_style()->font_size,
+                        ];
+                    }
+                }
+            }]]);
+        });
+
+        $this->actingAs($user)->get('/customers/'.$customer->id.'/pdf')
+            ->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertGreaterThan($frames['brand-cell'][0]['x'], $frames['title-cell'][0]['x']);
+        $this->assertGreaterThan($frames['hero-meta'][0]['x'], $frames['hero-main'][0]['x']);
+        $this->assertGreaterThan($frames['movement-notes'][0]['x'], $frames['sequence'][0]['x']);
+        $this->assertSame('right', $frames['document-title'][0]['align']);
+        $this->assertSame('right', $frames['hero-main'][0]['align']);
+        foreach ($frames['amount'] as $amount) {
+            $this->assertGreaterThanOrEqual(9, $amount['fontSize']);
+        }
+    }
+
     public function test_every_pdf_and_excel_export_downloads_a_valid_file(): void
     {
         [$user, $customer, $supplier, $receipt, $payment] = $this->records();

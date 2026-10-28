@@ -8,6 +8,7 @@ use App\Models\CompanyFeature;
 use App\Models\Customer;
 use App\Models\ExternalInvoice;
 use App\Models\Payment;
+use App\Models\PartyDebtTransaction;
 use App\Models\Receipt;
 use App\Models\Setting;
 use App\Models\Supplier;
@@ -29,6 +30,15 @@ class AuditObserver
 
     public function updated(Model $model): void
     {
+        // Moving a voucher changes the previous customer's balance as well.
+        // Keep both customers visible to clients syncing by updated_at.
+        if (($model instanceof Receipt || $model instanceof Payment
+                || $model instanceof ExternalInvoice || $model instanceof PartyDebtTransaction)
+            && $model->wasChanged('customer_id') && $model->getOriginal('customer_id')) {
+            Customer::withTrashed()->whereKey($model->getOriginal('customer_id'))
+                ->where('company_id', $model->getOriginal('company_id'))->touch();
+        }
+
         $changes = array_diff_key($model->getChanges(), array_flip(['updated_at']));
 
         if ($changes === []) {

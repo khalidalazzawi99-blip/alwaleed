@@ -9,6 +9,7 @@ use App\Models\PartyDebtTransaction;
 use App\Models\Payment;
 use App\Models\Receipt;
 use App\Models\Setting;
+use App\Services\CustomerBalanceService;
 use App\Services\DocumentExportService;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -57,9 +58,9 @@ class CustomerController extends Controller
             ->get();
 
         $customers->each(function (Customer $customer) {
-            $customer->remaining_amount = (float) $customer->total_invoiced + (float) $customer->total_borrowed
-                + (float) $customer->total_paid - (float) $customer->total_received - (float) $customer->total_debt_paid;
-            $customer->paid_amount = (float) $customer->total_received;
+            $customer->remaining_amount = round((float) $customer->total_invoiced + (float) $customer->total_borrowed
+                + (float) $customer->total_paid - (float) $customer->total_received - (float) $customer->total_debt_paid, 2);
+            $customer->paid_amount = round((float) $customer->total_received + (float) $customer->total_debt_paid, 2);
         });
 
         return $customers;
@@ -186,7 +187,10 @@ class CustomerController extends Controller
             ->orderBy('invoice_date')->orderBy('id')->get();
         $totalInvoices = (float) $externalInvoices->sum('amount');
 
-        $runningBalance = 0;
+        $openingBalance = ! empty($filters['from'])
+            ? app(CustomerBalanceService::class)->calculate($customer, $filters['from'])['currentBalance']
+            : 0.0;
+        $runningBalance = $openingBalance;
         $movements = $externalInvoices->map(fn (ExternalInvoice $invoice) => (object) [
             'number' => $invoice->invoice_no,
             'date' => $invoice->invoice_date->toDateString(),
@@ -237,7 +241,7 @@ class CustomerController extends Controller
             'notes' => $transaction->notes,
         ]))->sortBy(fn ($movement) => $movement->date.'-'.$movement->sort_order.'-'.str_pad($movement->sort_id, 12, '0', STR_PAD_LEFT))->values()
             ->map(function ($movement) use (&$runningBalance) {
-                $runningBalance += $movement->invoiced + $movement->paid - $movement->received;
+                $runningBalance = round($runningBalance + $movement->invoiced + $movement->paid - $movement->received, 2);
                 $movement->balance = $runningBalance;
 
                 return $movement;
@@ -252,6 +256,7 @@ class CustomerController extends Controller
             'totalPaid' => $payments->sum('amount'),
             'totalInvoiced' => $totalInvoices + $debtTransactions->where('type', 'borrowing')->sum('amount'),
             'balance' => $runningBalance,
+            'openingBalance' => $openingBalance,
             'movementsCount' => $movements->count(),
             'from' => $filters['from'] ?? null,
             'to' => $filters['to'] ?? null,
@@ -266,6 +271,10 @@ class CustomerController extends Controller
             $index + 1, $movement->date, $movement->number, $movement->type,
             $movement->invoiced, $movement->received, $movement->paid, $movement->balance, $movement->notes,
         ])->all();
+
+        if ($data['from']) {
+            array_unshift($rows, ['', $data['from'], '', __('messages.period_opening_balance'), '', '', '', $data['openingBalance'], '']);
+        }
 
         $rows[] = ['', '', '', __('messages.total'), $data['totalInvoiced'], $data['totalReceived'], $data['totalPaid'], $data['balance'], ''];
 

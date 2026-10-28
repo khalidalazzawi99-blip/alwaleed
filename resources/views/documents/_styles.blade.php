@@ -13,13 +13,6 @@ body{font-family:'Tajawal','DejaVu Sans',sans-serif;line-height:1.55}.brand-cell
 .statement-document .summary .value{font-size:10px;white-space:normal}
 .statement-document .data{table-layout:fixed}
 .statement-document .data th,.statement-document .data td{font-size:9px;padding:5px 3px;overflow-wrap:break-word}
-.statement-document .data th:nth-child(1){width:4%}
-.statement-document .data th:nth-child(2){width:11%}
-.statement-document .data th:nth-child(3){width:13%}
-.statement-document .data th:nth-child(4){width:12%}
-.statement-document .data th:nth-child(9){width:16%}
-.statement-document .data td:nth-child(2){white-space:nowrap;font-size:8px}
-.statement-document .data td:nth-child(n+5):nth-child(-n+8){direction:ltr;font-size:8px}
 @media print{
     html,body{margin:0!important;background:#fff!important}
     .document,.document:not(.voucher-document),.voucher-document{
