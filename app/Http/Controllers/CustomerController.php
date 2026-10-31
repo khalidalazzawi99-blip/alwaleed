@@ -135,7 +135,7 @@ class CustomerController extends Controller
     {
         $this->ensureCustomerBelongsToCompany($customer);
 
-        return view('customers.print', $this->statementData($request, $customer));
+        return view($customer->account_group === Customer::GROUP_KUDIA ? 'kudia.statement' : 'customers.print', $this->statementData($request, $customer));
     }
 
     public function pdf(Request $request, Customer $customer, DocumentExportService $exports)
@@ -143,7 +143,9 @@ class CustomerController extends Controller
         $this->ensureCustomerBelongsToCompany($customer);
         $data = $this->statementData($request, $customer);
 
-        return $exports->pdf('customers.print', $data, 'customer-statement-'.$customer->id.'.pdf');
+        $factory = $customer->account_group === Customer::GROUP_KUDIA;
+
+        return $exports->pdf($factory ? 'kudia.statement' : 'customers.print', $data, 'customer-statement-'.$customer->id.'.pdf', showSystemFooter: ! $factory);
     }
 
     public function excel(Request $request, Customer $customer)
@@ -200,6 +202,9 @@ class CustomerController extends Controller
             'resource' => 'invoice',
             'resource_id' => $invoice->id,
             'type' => __('فاتورة'),
+            'description' => collect($invoice->payload['items'] ?? [])->filter(fn ($item) => is_array($item))
+                ->map(fn ($item) => trim(($item['description'] ?? '').' '.($item['details'] ?? '')))
+                ->filter()->implode(" +\n") ?: ($invoice->invoice_name ?: 'Invoice'),
             'invoiced' => (float) $invoice->amount,
             'received' => 0,
             'paid' => 0,
@@ -256,6 +261,8 @@ class CustomerController extends Controller
             'totalReceived' => $receipts->sum('amount') + $debtTransactions->where('type', 'debt_payment')->sum('amount'),
             'totalPaid' => $payments->sum('amount'),
             'totalInvoiced' => $totalInvoices + $debtTransactions->where('type', 'borrowing')->sum('amount'),
+            'totalInvoiceAmount' => $totalInvoices,
+            'totalBorrowed' => $debtTransactions->where('type', 'borrowing')->sum('amount'),
             'balance' => $runningBalance,
             'openingBalance' => $openingBalance,
             'movementsCount' => $movements->count(),
