@@ -5,7 +5,7 @@
     @include('kudia._nav')
     <div class="kudia-toolbar">
         <h2><bdi>{{ $invoice->invoice_no }}</bdi> <span class="kudia-pill {{ $invoice->status === 'cancelled' ? 'cancelled' : '' }}">{{ $invoice->status === 'cancelled' ? 'ملغاة' : 'فعالة' }}</span></h2>
-        <div class="kudia-nav"><a href="{{ route('kudia.invoices.pdf', $invoice) }}" class="active">تنزيل PDF</a><a href="{{ route('kudia.invoices.print', $invoice) }}" target="_blank" rel="noopener">طباعة</a>@if($invoice->status !== 'cancelled')<a href="{{ route('kudia.invoices.edit', $invoice) }}">تعديل</a>@endif @if($invoice->customer_id)<a href="{{ route('kudia.customers.show', $invoice->customer_id) }}">كشف حساب الزبون</a>@endif</div>
+        <div class="kudia-nav"><a href="{{ route('kudia.invoices.pdf', $invoice) }}" class="active">تنزيل PDF</a><a href="{{ route('kudia.invoices.print', $invoice) }}" target="_blank" rel="noopener">طباعة</a>@if($invoice->status !== 'cancelled')<a href="{{ route('kudia.invoices.edit', $invoice) }}">تعديل</a>@endif @if($invoice->customer_id)<a href="{{ $invoice->customer?->account_group === \App\Models\Customer::GROUP_KUDIA ? route('kudia.customers.show', $invoice->customer_id) : url('/customers/'.$invoice->customer_id) }}">كشف حساب الزبون</a>@endif</div>
     </div>
     <iframe class="kudia-invoice-frame" src="{{ route('kudia.invoices.print', $invoice) }}?preview=1" title="معاينة فاتورة مصنع كوديا"></iframe>
     @if($invoice->status !== 'cancelled')

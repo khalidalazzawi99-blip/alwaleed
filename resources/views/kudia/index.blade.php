@@ -3,6 +3,9 @@
 @include('kudia._styles')
 <div class="kudia-page">
     @include('kudia._nav')
+    @if($legacyInvoiceCount)
+        <div class="kudia-panel">توجد {{ $legacyInvoiceCount }} فاتورة كوديا سابقة مرتبطة بزبائن سيبار. بقيت بحساباتها الأصلية للحفاظ على الأرصدة؛ راجع ربط الزبون قبل نقلها إلى حساب مصنع مستقل.</div>
+    @endif
     <section class="kudia-stats">
         <div class="kudia-stat"><span>إجمالي الفواتير الفعالة</span><strong><bdi>{{ number_format($invoiceTotal, 2) }}</bdi> <small>{{ $currency }}</small></strong></div>
         <div class="kudia-stat"><span>عدد الفواتير الفعالة</span><strong>{{ $invoiceCount }}</strong></div>

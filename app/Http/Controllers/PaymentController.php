@@ -24,9 +24,9 @@ class PaymentController extends Controller
         $companyId = auth()->user()->company_id;
 
         return view('payments.index', [
-            'payments' => Payment::with(['customer', 'supplier', 'cashbox'])->where('company_id', $companyId)->latest()->get(),
-            'customers' => Customer::where('company_id', $companyId)->orderBy('name')->get(),
-            'suppliers' => Supplier::where('company_id', $companyId)->orderBy('name')->get(),
+            'payments' => Payment::with(['customer', 'supplier', 'cashbox'])->where('company_id', $companyId)->forCustomerGroup(Customer::requestAccountGroup())->latest()->get(),
+            'customers' => Customer::where('company_id', $companyId)->forAccountGroup(Customer::requestAccountGroup())->orderBy('name')->get(),
+            'suppliers' => Customer::requestAccountGroup() === Customer::GROUP_KUDIA ? collect() : Supplier::where('company_id', $companyId)->orderBy('name')->get(),
             'cashboxes' => Cashbox::operational()->where('company_id', $companyId)->where('is_active', true)->orderBy('id')->get(),
             'nextPaymentNo' => $this->numbers->preview($companyId, 'payment', now()->year),
         ]);
@@ -53,7 +53,7 @@ class PaymentController extends Controller
             $this->log($cashbox->fresh(), $payment, $party->name, 'صرف', $data['notes'] ?? null);
         });
 
-        return redirect('/payments')->with('success', 'تم إضافة سند الصرف بنجاح');
+        return redirect((request()->routeIs('kudia.*') ? '/kudia' : '').'/payments')->with('success', 'تم إضافة سند الصرف بنجاح');
     }
 
     public function edit(Payment $payment)
@@ -63,8 +63,8 @@ class PaymentController extends Controller
         $companyId = auth()->user()->company_id;
 
         return view('payments.edit', [
-            'payment' => $payment, 'suppliers' => Supplier::where('company_id', $companyId)->orderBy('name')->get(),
-            'customers' => Customer::where('company_id', $companyId)->orderBy('name')->get(),
+            'payment' => $payment, 'suppliers' => Customer::requestAccountGroup() === Customer::GROUP_KUDIA ? collect() : Supplier::where('company_id', $companyId)->orderBy('name')->get(),
+            'customers' => Customer::where('company_id', $companyId)->forAccountGroup(Customer::requestAccountGroup())->orderBy('name')->get(),
             'cashboxes' => Cashbox::operational()->where('company_id', $companyId)->where(fn ($q) => $q->where('is_active', true)->orWhereKey($payment->cashbox_id))->orderBy('id')->get(),
         ]);
     }
@@ -98,7 +98,7 @@ class PaymentController extends Controller
             $this->log($current->fresh(), $payment, $party->name, 'تعديل صرف', 'تم تعديل سند صرف');
         });
 
-        return redirect('/payments')->with('success', 'تم تعديل سند الصرف بنجاح');
+        return redirect((request()->routeIs('kudia.*') ? '/kudia' : '').'/payments')->with('success', 'تم تعديل سند الصرف بنجاح');
     }
 
     public function destroy(Request $request, Payment $payment)
@@ -117,7 +117,7 @@ class PaymentController extends Controller
             $payment->update(['status' => 'cancelled', 'cancelled_by' => auth()->id(), 'cancelled_at' => now(), 'cancellation_reason' => $data['cancellation_reason'] ?? null]);
         });
 
-        return redirect('/payments')->with('success', 'تم إلغاء سند الصرف مع الاحتفاظ بسجل التدقيق.');
+        return redirect((request()->routeIs('kudia.*') ? '/kudia' : '').'/payments')->with('success', 'تم إلغاء سند الصرف مع الاحتفاظ بسجل التدقيق.');
     }
 
     public function print($id)
@@ -150,19 +150,22 @@ class PaymentController extends Controller
 
     private function findCompanyPayment($id): Payment
     {
-        return Payment::with(['customer', 'supplier'])->whereKey($id)->where('company_id', auth()->user()->company_id)->firstOrFail();
+        return Payment::with(['customer', 'supplier'])->whereKey($id)->where('company_id', auth()->user()->company_id)->forCustomerGroup(Customer::requestAccountGroup())->firstOrFail();
     }
 
     private function ensureCompany(Payment $payment): void
     {
         abort_unless((int) $payment->company_id === (int) auth()->user()->company_id, 403);
+        abort_unless(($payment->customer?->account_group ?? Customer::GROUP_GENERAL) === Customer::requestAccountGroup(), 404);
     }
 
     private function findParty(string $type, int $id, int $companyId)
     {
         $model = $type === 'customer' ? Customer::class : Supplier::class;
+        abort_if($type === 'supplier' && Customer::requestAccountGroup() === Customer::GROUP_KUDIA, 404);
 
-        return $model::whereKey($id)->where('company_id', $companyId)->firstOrFail();
+        return $model::whereKey($id)->where('company_id', $companyId)
+            ->when($type === 'customer', fn ($query) => $query->forAccountGroup(Customer::requestAccountGroup()))->firstOrFail();
     }
 
     private function findCashbox(int $id, int $companyId): Cashbox

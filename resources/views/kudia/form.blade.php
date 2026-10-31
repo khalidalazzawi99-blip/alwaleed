@@ -6,6 +6,9 @@
 @endphp
 <div class="kudia-page">
     @include('kudia._nav')
+    @if($invoice && $invoice->customer?->account_group !== \App\Models\Customer::GROUP_KUDIA)
+        <div class="kudia-errors">هذه فاتورة سابقة مرتبطة بزبون سيبار. اختيار زبون مصنع وحفظ التعديل ينقل قيمتها من حساب الزبون السابق إلى حساب زبون المصنع. لا تحفظ قبل التأكد من الربط الصحيح.</div>
+    @endif
     @if($errors->any())<div class="kudia-errors"><strong>يرجى مراجعة المعلومات:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
     <form method="POST" action="{{ $invoice ? route('kudia.invoices.update', $invoice) : route('kudia.invoices.store') }}" class="kudia-panel" id="kudiaInvoiceForm">
         @csrf

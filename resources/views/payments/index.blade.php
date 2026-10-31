@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+@php($voucherBase = request()->routeIs('kudia.*') ? '/kudia/payments' : '/payments')
+@if(request()->routeIs('kudia.*')) @include('kudia._styles') <div class="kudia-page" style="margin-bottom:24px">@include('kudia._nav')</div> @endif
 
 <div class="topbar">
     <h1 class="page-title">{{ __('🔴 سند صرف') }}</h1>
@@ -12,7 +14,7 @@
 <div class="card">
 <h2>{{ __('سند جديد') }}</h2>
 
-<form method="POST" action="/payments">
+<form method="POST" action="{{ $voucherBase }}">
 @csrf
 
 <label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('رقم الوصل') }}</label>
@@ -97,23 +99,23 @@
 <td>
     <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:nowrap;">
 
-        @if($payment->status !== 'cancelled')<a href="/payments/{{ $payment->id }}/edit"
+        @if($payment->status !== 'cancelled')<a href="{{ $voucherBase }}/{{ $payment->id }}/edit"
            class="btn"
            style="padding:10px 16px;white-space:nowrap;">
             {{ __('تعديل') }}
         </a>@endif
 
-        <a href="/payments/{{ $payment->id }}/print"
+        <a href="{{ $voucherBase }}/{{ $payment->id }}/print"
            class="btn"
            target="_blank"
            style="padding:10px 16px;white-space:nowrap;">
             {{ __('طباعة') }}
         </a>
 
-        <a href="/payments/{{ $payment->id }}/pdf" class="btn" style="padding:10px 16px">PDF</a>
-        <a href="/payments/{{ $payment->id }}/excel" class="btn" style="padding:10px 16px">Excel</a>
+        <a href="{{ $voucherBase }}/{{ $payment->id }}/pdf" class="btn" style="padding:10px 16px">PDF</a>
+        <a href="{{ $voucherBase }}/{{ $payment->id }}/excel" class="btn" style="padding:10px 16px">Excel</a>
 
-        @if($payment->status !== 'cancelled')<form action="/payments/{{ $payment->id }}"
+        @if($payment->status !== 'cancelled')<form action="{{ $voucherBase }}/{{ $payment->id }}"
               method="POST"
               style="display:inline;margin:0;">
 

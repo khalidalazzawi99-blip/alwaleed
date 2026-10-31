@@ -18,7 +18,7 @@
     <section class="kudia-panel"><div class="kudia-toolbar"><h2>الزبائن وكشوفات الحساب</h2><div class="kudia-nav"><a href="{{ route('kudia.customers.index') }}">الكل</a><a href="{{ route('kudia.customers.index', ['debts_only' => 1]) }}">أصحاب الأرصدة المستحقة</a></div></div>
         <div style="overflow-x:auto"><table class="kudia-table"><thead><tr><th>الزبون</th><th>الهاتف</th><th>المسدد</th><th>الرصيد المتبقي</th><th>كشف الحساب</th></tr></thead><tbody>
         @forelse($customers as $customer)
-            <tr><td><a href="{{ route('kudia.customers.show', $customer) }}">{{ $customer->name }}</a></td><td><bdi>{{ $customer->phone ?: '—' }}</bdi></td><td><bdi>{{ number_format($customer->paid_amount, 2) }}</bdi></td><td><bdi>{{ number_format($customer->remaining_amount, 2) }}</bdi> {{ $companyCurrency }}</td><td><a href="{{ route('kudia.customers.pdf', $customer) }}">PDF</a> · <a href="{{ route('kudia.customers.excel', $customer) }}">Excel</a> · <a href="/customers/{{ $customer->id }}/edit">تعديل</a></td></tr>
+            <tr><td><a href="{{ route('kudia.customers.show', $customer) }}">{{ $customer->name }}</a></td><td><bdi>{{ $customer->phone ?: '—' }}</bdi></td><td><bdi>{{ number_format($customer->paid_amount, 2) }}</bdi></td><td><bdi>{{ number_format($customer->remaining_amount, 2) }}</bdi> {{ $companyCurrency }}</td><td><a href="{{ route('kudia.customers.pdf', $customer) }}">PDF</a> · <a href="{{ route('kudia.customers.excel', $customer) }}">Excel</a> · <a href="{{ route('kudia.customers.edit', $customer) }}">تعديل</a></td></tr>
         @empty
             <tr><td colspan="5" class="kudia-empty">لا يوجد زبائن.</td></tr>
         @endforelse

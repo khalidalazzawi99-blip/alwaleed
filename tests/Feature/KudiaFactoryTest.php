@@ -42,7 +42,8 @@ class KudiaFactoryTest extends TestCase
         $invoice = ExternalInvoice::sole();
         $this->assertSame($company->id, $invoice->company_id);
         $this->assertSame($customer->id, $invoice->customer_id);
-        $this->get('/customers/'.$customer->id)->assertOk()->assertViewHas('balance', 2160000.0);
+        $this->get('/customers/'.$customer->id)->assertNotFound();
+        $this->get('/kudia/customers/'.$customer->id)->assertOk()->assertViewHas('balance', 2160000.0);
     }
 
     public function test_company_setup_prefills_kudia_and_creates_an_independent_manager_account(): void
@@ -113,7 +114,7 @@ class KudiaFactoryTest extends TestCase
         $this->actingAs($user)->post('/kudia/invoices', $this->payload($customer))->assertRedirect();
         $invoice = ExternalInvoice::sole();
         $number = $invoice->invoice_no;
-        $destination = Customer::create(['company_id' => $company->id, 'name' => 'Another Kudia client']);
+        $destination = Customer::create(['company_id' => $company->id, 'account_group' => Customer::GROUP_KUDIA, 'name' => 'Another Kudia client']);
         $data = $this->payload($destination);
         $data['items'][0]['quantity'] = 2;
         $data['items'][0]['unit_price'] = '10.05';
@@ -210,7 +211,7 @@ class KudiaFactoryTest extends TestCase
         }
         Setting::create(['company_id' => $company->id, 'company_name' => 'مصنع كوديا', 'currency' => 'IQD']);
         $user = User::factory()->create(['company_id' => $company->id, 'role' => 'admin']);
-        $customer = Customer::create(['company_id' => $company->id, 'name' => 'Quick Pack . co', 'address' => 'Iraq - Erbil']);
+        $customer = Customer::create(['company_id' => $company->id, 'account_group' => Customer::GROUP_KUDIA, 'name' => 'Quick Pack . co', 'address' => 'Iraq - Erbil']);
 
         return [$company, $user, $customer];
     }

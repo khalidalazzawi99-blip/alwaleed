@@ -22,7 +22,9 @@ class PartyDebtTransactionController extends Controller
 
         $companyId = auth()->user()->company_id;
         $model = $data['party_type'] === 'customer' ? Customer::class : Supplier::class;
-        $party = $model::whereKey($data['party_id'])->where('company_id', $companyId)->firstOrFail();
+        abort_if($data['party_type'] === 'supplier' && Customer::requestAccountGroup() === Customer::GROUP_KUDIA, 404);
+        $party = $model::whereKey($data['party_id'])->where('company_id', $companyId)
+            ->when($data['party_type'] === 'customer', fn ($query) => $query->forAccountGroup(Customer::requestAccountGroup()))->firstOrFail();
 
         PartyDebtTransaction::create([
             'company_id' => $companyId,
@@ -34,7 +36,7 @@ class PartyDebtTransactionController extends Controller
             'notes' => $data['notes'] ?? null,
         ]);
 
-        return redirect('/'.$data['party_type'].'s/'.$party->id)
+        return redirect((request()->routeIs('kudia.*') ? '/kudia' : '').'/'.$data['party_type'].'s/'.$party->id)
             ->with('success', $data['type'] === 'borrowing' ? 'تم تسجيل الاستدانة بنجاح' : 'تم تسجيل سداد الدين بنجاح');
     }
 
@@ -74,12 +76,13 @@ class PartyDebtTransactionController extends Controller
     private function ensureCompany(PartyDebtTransaction $transaction): void
     {
         abort_unless((int) $transaction->company_id === (int) auth()->user()->company_id, 403);
+        abort_unless(($transaction->customer?->account_group ?? Customer::GROUP_GENERAL) === Customer::requestAccountGroup(), 404);
     }
 
     private function partyUrl(PartyDebtTransaction $transaction): string
     {
         return $transaction->customer_id
-            ? '/customers/'.$transaction->customer_id
+            ? (request()->routeIs('kudia.*') ? '/kudia' : '').'/customers/'.$transaction->customer_id
             : '/suppliers/'.$transaction->supplier_id;
     }
 }

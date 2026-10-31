@@ -12,6 +12,10 @@ class KudiaInvoiceService
 {
     public function save(Customer $customer, array $data, ?ExternalInvoice $invoice = null): ExternalInvoice
     {
+        if ($customer->account_group !== Customer::GROUP_KUDIA) {
+            throw ValidationException::withMessages(['customer_id' => 'اختر زبوناً من قائمة زبائن المصنع.']);
+        }
+
         return DB::transaction(function () use ($customer, $data, $invoice) {
             $items = [];
             $subtotal = 0;

@@ -11,8 +11,9 @@
     $statementBase = request()->routeIs('kudia.*') ? '/kudia/customers/' : '/customers/';
     $printUrl = url($statementBase.$customer->id.'/print');
     $resetUrl = url($statementBase.$customer->id);
-    $receiptUrl = url('/receipts?party_type=customer&party_id='.$customer->id);
-    $paymentUrl = url('/payments?party_type=customer&party_id='.$customer->id);
+    $voucherPrefix = request()->routeIs('kudia.*') ? '/kudia' : '';
+    $receiptUrl = url($voucherPrefix.'/receipts?party_type=customer&party_id='.$customer->id);
+    $paymentUrl = url($voucherPrefix.'/payments?party_type=customer&party_id='.$customer->id);
     $partyType = 'customer';
 @endphp
 @include('statements.show')

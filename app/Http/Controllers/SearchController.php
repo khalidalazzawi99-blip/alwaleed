@@ -20,13 +20,13 @@ class SearchController extends Controller
         if (preg_match('/^RCP-\d{4}-\d{6}$/i', $term)) {
             $receipt = Receipt::where('company_id', $companyId)->where('receipt_no', strtoupper($term))->first();
             if ($receipt) {
-                return redirect('/receipts/'.$receipt->id.'/print');
+                return redirect(($receipt->customer?->account_group === Customer::GROUP_KUDIA ? '/kudia' : '').'/receipts/'.$receipt->id.'/print');
             }
         }
         if (preg_match('/^PAY-\d{4}-\d{6}$/i', $term)) {
             $payment = Payment::where('company_id', $companyId)->where('payment_no', strtoupper($term))->first();
             if ($payment) {
-                return redirect('/payments/'.$payment->id.'/print');
+                return redirect(($payment->customer?->account_group === Customer::GROUP_KUDIA ? '/kudia' : '').'/payments/'.$payment->id.'/print');
             }
         }
         $results = $term === '' ? $this->emptyResults() : $this->results($term, 50);
@@ -96,6 +96,7 @@ class SearchController extends Controller
         $like = '%'.$term.'%';
 
         $customers = Customer::query()
+            ->forAccountGroup(Customer::GROUP_GENERAL)
             ->when($companyId, fn (Builder $query) => $query->where('company_id', $companyId))
             ->where(fn (Builder $query) => $query
                 ->where('name', 'like', $like)
@@ -114,6 +115,7 @@ class SearchController extends Controller
             ->limit($limit)->get();
 
         $receipts = Receipt::with(['customer', 'supplier'])
+            ->forCustomerGroup(Customer::GROUP_GENERAL)
             ->when($companyId, fn (Builder $query) => $query->where('company_id', $companyId))
             ->where(fn (Builder $query) => $query
                 ->where('receipt_no', 'like', $like)
@@ -126,6 +128,7 @@ class SearchController extends Controller
             ->latest('receipt_date')->limit($limit)->get();
 
         $payments = Payment::with(['customer', 'supplier'])
+            ->forCustomerGroup(Customer::GROUP_GENERAL)
             ->when($companyId, fn (Builder $query) => $query->where('company_id', $companyId))
             ->where(fn (Builder $query) => $query
                 ->where('payment_no', 'like', $like)
@@ -138,6 +141,7 @@ class SearchController extends Controller
             ->latest('payment_date')->limit($limit)->get();
 
         $externalInvoices = ExternalInvoice::with('customer')
+            ->where('provider', '!=', 'kudia')
             ->when($companyId, fn (Builder $query) => $query->where('company_id', $companyId))
             ->where(fn (Builder $query) => $query->where('invoice_no', 'like', $like)
                 ->orWhere('external_invoice_id', 'like', $like)

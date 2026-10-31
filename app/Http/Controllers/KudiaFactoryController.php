@@ -27,8 +27,9 @@ class KudiaFactoryController extends Controller
             'invoices' => $query->orderByDesc('invoice_date')->orderByDesc('id')->paginate(20)->withQueryString(),
             'invoiceTotal' => $this->invoices()->where('status', '!=', 'cancelled')->sum('amount'),
             'invoiceCount' => $this->invoices()->where('status', '!=', 'cancelled')->count(),
-            'customerCount' => Customer::where('company_id', $companyId)->count(),
+            'customerCount' => Customer::where('company_id', $companyId)->forAccountGroup(Customer::GROUP_KUDIA)->count(),
             'currency' => $this->currency(),
+            'legacyInvoiceCount' => $this->invoices()->whereHas('customer', fn ($query) => $query->forAccountGroup(Customer::GROUP_GENERAL))->count(),
         ]);
     }
 
@@ -55,7 +56,7 @@ class KudiaFactoryController extends Controller
     public function store(Request $request, KudiaInvoiceService $service)
     {
         $data = $this->validateInvoice($request);
-        $customer = Customer::where('company_id', $this->companyId())->findOrFail($data['customer_id']);
+        $customer = Customer::where('company_id', $this->companyId())->forAccountGroup(Customer::GROUP_KUDIA)->findOrFail($data['customer_id']);
         $invoice = $service->save($customer, $data);
 
         return redirect()->route('kudia.invoices.show', $invoice)->with('success', 'تم حفظ الفاتورة وإضافتها لكشف حساب الزبون.');
@@ -77,7 +78,7 @@ class KudiaFactoryController extends Controller
     public function update(Request $request, int $invoice, KudiaInvoiceService $service)
     {
         $data = $this->validateInvoice($request);
-        $customer = Customer::where('company_id', $this->companyId())->findOrFail($data['customer_id']);
+        $customer = Customer::where('company_id', $this->companyId())->forAccountGroup(Customer::GROUP_KUDIA)->findOrFail($data['customer_id']);
         DB::transaction(function () use ($invoice, $customer, $data, $service) {
             $record = $this->invoices()->whereKey($invoice)->lockForUpdate()->firstOrFail();
             abort_if($record->status === 'cancelled', 422, 'لا يمكن تعديل فاتورة ملغاة.');
@@ -118,7 +119,7 @@ class KudiaFactoryController extends Controller
     {
         return view('kudia.form', [
             'invoice' => $invoice,
-            'customers' => Customer::where('company_id', $this->companyId())->orderBy('name')->get(),
+            'customers' => Customer::where('company_id', $this->companyId())->forAccountGroup(Customer::GROUP_KUDIA)->orderBy('name')->get(),
             'currency' => $this->currency(),
         ]);
     }
@@ -126,7 +127,7 @@ class KudiaFactoryController extends Controller
     private function validateInvoice(Request $request): array
     {
         $data = $request->validate([
-            'customer_id' => ['required', 'integer', Rule::exists('customers', 'id')->where('company_id', $this->companyId())->whereNull('deleted_at')],
+            'customer_id' => ['required', 'integer', Rule::exists('customers', 'id')->where('company_id', $this->companyId())->where('account_group', Customer::GROUP_KUDIA)->whereNull('deleted_at')],
             'invoice_date' => ['required', 'date_format:Y-m-d'],
             'tax_rate' => ['required', 'numeric', 'decimal:0,2', 'between:0,100'],
             'items' => ['required', 'array', 'min:1', 'max:100'],

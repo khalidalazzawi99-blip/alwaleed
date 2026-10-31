@@ -9,6 +9,21 @@ use Illuminate\Support\Str;
 class Customer extends Model
 {
     use SoftDeletes;
+
+    public const GROUP_GENERAL = 'general';
+    public const GROUP_KUDIA = 'kudia';
+
+    protected $attributes = ['account_group' => self::GROUP_GENERAL];
+
+    public static function requestAccountGroup(): string
+    {
+        return request()->routeIs('kudia.*') ? self::GROUP_KUDIA : self::GROUP_GENERAL;
+    }
+
+    public function scopeForAccountGroup($query, string $group)
+    {
+        return $query->where('account_group', $group);
+    }
     protected static function booted(): void
     {
         static::creating(function (Customer $customer): void {
@@ -24,6 +39,7 @@ class Customer extends Model
 
     protected $fillable = [
         'company_id',
+        'account_group',
         'name',
         'phone',
         'company_name',

@@ -18,6 +18,7 @@ class ExternalDataApiController extends Controller
         $currency = Setting::where('company_id', $company->id)->value('currency') ?: 'IQD';
         $differential = $request->filled('updated_since');
         $page = Customer::query()->when($differential, fn ($query) => $query->withTrashed())
+            ->forAccountGroup(Customer::GROUP_GENERAL)
             ->where('company_id', $company->id)
             ->when($request->filled('updated_since'), fn ($query) => $query->where('updated_at', '>=', $request->date('updated_since')))
             ->orderBy('id')->paginate($this->perPage($request))->withQueryString();

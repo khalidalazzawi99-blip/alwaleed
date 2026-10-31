@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+@php($voucherBase = request()->routeIs('kudia.*') ? '/kudia/payments' : '/payments')
+@if(request()->routeIs('kudia.*')) @include('kudia._styles') <div class="kudia-page" style="margin-bottom:24px">@include('kudia._nav')</div> @endif
 
 <div class="topbar">
     <h1 class="page-title">{{ __('تعديل سند صرف') }}</h1>
@@ -9,7 +11,7 @@
 
 <div class="card">
 
-<form method="POST" action="/payments/{{ $payment->id }}">
+<form method="POST" action="{{ $voucherBase }}/{{ $payment->id }}">
 @csrf
 @method('PUT')
 
@@ -61,7 +63,7 @@
 {{ __('حفظ التعديل') }}
 </button>
 
-<a href="/payments" class="btn" style="margin-right:10px">
+<a href="{{ $voucherBase }}" class="btn" style="margin-right:10px">
 {{ __('رجوع') }}
 </a>
 

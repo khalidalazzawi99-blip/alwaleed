@@ -8,6 +8,10 @@
 .movement-actions{display:flex;gap:6px;align-items:center}.movement-actions form{margin:0}.movement-actions .btn,.movement-actions button{padding:7px 10px;font-size:11px;white-space:nowrap}.movement-actions .delete-movement{background:#b91c1c;color:#fff}.statement-hero .bilingual-name{display:block}.statement-hero .bilingual-name-ar,.statement-hero .bilingual-name-en{display:block}.statement-hero .bilingual-name-en{font-size:.65em;color:#cbd5e1;text-align:right}
 </style>
 
+@php
+    $accountRoutePrefix = request()->routeIs('kudia.*') ? 'kudia.' : '';
+    $accountPathPrefix = request()->routeIs('kudia.*') ? '/kudia' : '';
+@endphp
 <div class="statement-shell">
     <section class="statement-hero">
         <div class="statement-identity">
@@ -35,7 +39,7 @@
     </form>
 
     <section class="party-transactions">
-        <form method="POST" action="{{ route('party-debt-transactions.store') }}" class="party-transaction deposit">
+        <form method="POST" action="{{ route($accountRoutePrefix.'party-debt-transactions.store') }}" class="party-transaction deposit">
             @csrf
             <input type="hidden" name="party_type" value="{{ $partyType }}">
             <input type="hidden" name="party_id" value="{{ $party->id }}">
@@ -48,7 +52,7 @@
                 <button class="wide" type="submit">تأكيد سداد الدين</button>
             </div>
         </form>
-        <form method="POST" action="{{ route('party-debt-transactions.store') }}" class="party-transaction withdraw">
+        <form method="POST" action="{{ route($accountRoutePrefix.'party-debt-transactions.store') }}" class="party-transaction withdraw">
             @csrf
             <input type="hidden" name="party_type" value="{{ $partyType }}">
             <input type="hidden" name="party_id" value="{{ $party->id }}">
@@ -101,15 +105,15 @@
                 @forelse($movements as $index => $movement)
                     @php
                         $editUrl = match($movement->resource) {
-                            'receipt' => url('/receipts/'.$movement->resource_id.'/edit'),
-                            'payment' => url('/payments/'.$movement->resource_id.'/edit'),
-                            'debt' => route('party-debt-transactions.edit', $movement->resource_id),
+                            'receipt' => url($accountPathPrefix.'/receipts/'.$movement->resource_id.'/edit'),
+                            'payment' => url($accountPathPrefix.'/payments/'.$movement->resource_id.'/edit'),
+                            'debt' => route($accountRoutePrefix.'party-debt-transactions.edit', $movement->resource_id),
                             default => null,
                         };
                         $deleteUrl = match($movement->resource) {
-                            'receipt' => url('/receipts/'.$movement->resource_id),
-                            'payment' => url('/payments/'.$movement->resource_id),
-                            'debt' => route('party-debt-transactions.destroy', $movement->resource_id),
+                            'receipt' => url($accountPathPrefix.'/receipts/'.$movement->resource_id),
+                            'payment' => url($accountPathPrefix.'/payments/'.$movement->resource_id),
+                            'debt' => route($accountRoutePrefix.'party-debt-transactions.destroy', $movement->resource_id),
                             default => null,
                         };
                     @endphp

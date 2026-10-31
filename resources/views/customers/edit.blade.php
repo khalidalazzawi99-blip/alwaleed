@@ -1,9 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
+@php($customerBase = request()->routeIs('kudia.*') ? '/kudia/customers' : '/customers')
 <div class="topbar"><h1 class="page-title">{{ __('تعديل بيانات الزبون') }}</h1></div>
 <div class="card">
-    <form method="POST" action="/customers/{{ $customer->id }}">
+    <form method="POST" action="{{ $customerBase }}/{{ $customer->id }}">
         @csrf
         @method('PUT')
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px">
@@ -16,7 +17,7 @@
         <textarea name="notes" rows="4" placeholder="{{ __('ملاحظات') }}">{{ old('notes', $customer->notes) }}</textarea>
         <br><br>
         <button type="submit">{{ __('حفظ التعديلات') }}</button>
-        <a href="/customers" class="btn">{{ __('إلغاء') }}</a>
+        <a href="{{ $customerBase }}" class="btn">{{ __('إلغاء') }}</a>
     </form>
 </div>
 @endsection

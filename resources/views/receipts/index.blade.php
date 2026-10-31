@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+@php($voucherBase = request()->routeIs('kudia.*') ? '/kudia/receipts' : '/receipts')
+@if(request()->routeIs('kudia.*')) @include('kudia._styles') <div class="kudia-page" style="margin-bottom:24px">@include('kudia._nav')</div> @endif
 
 <div class="topbar">
     <h1 class="page-title">{{ __('🟢 سند قبض') }}</h1>
@@ -12,7 +14,7 @@
 <div class="card">
 <h2>{{ __('سند جديد') }}</h2>
 
-<form method="POST" action="/receipts">
+<form method="POST" action="{{ $voucherBase }}">
 @csrf
 
 <label style="font-weight:700;display:block;margin-bottom:20px;">{{ __('رقم الوصل') }}</label>
@@ -97,23 +99,23 @@
 <td>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
 
-    @if($receipt->status !== 'cancelled')<a href="/receipts/{{ $receipt->id }}/edit"
+    @if($receipt->status !== 'cancelled')<a href="{{ $voucherBase }}/{{ $receipt->id }}/edit"
        class="btn"
        style="margin-left:10px;">
        {{ __('تعديل') }}
     </a>@endif
 
-    <a href="/receipts/{{ $receipt->id }}/print"
+    <a href="{{ $voucherBase }}/{{ $receipt->id }}/print"
        class="btn"
        target="_blank"
        style="margin-left:10px;">
        {{ __('طباعة') }}
     </a>
 
-    <a href="/receipts/{{ $receipt->id }}/pdf" class="btn">PDF</a>
-    <a href="/receipts/{{ $receipt->id }}/excel" class="btn">Excel</a>
+    <a href="{{ $voucherBase }}/{{ $receipt->id }}/pdf" class="btn">PDF</a>
+    <a href="{{ $voucherBase }}/{{ $receipt->id }}/excel" class="btn">Excel</a>
 
-    @if($receipt->status !== 'cancelled')<form action="/receipts/{{ $receipt->id }}"
+    @if($receipt->status !== 'cancelled')<form action="{{ $voucherBase }}/{{ $receipt->id }}"
           method="POST"
           style="display:inline;">
 

@@ -10,4 +10,4 @@
 </table><h2 class="section-title">البيان والملاحظات</h2><div class="notes">{{ $receipt->notes?:'لا توجد ملاحظات' }}</div></td>
 </tr></table>
 @include('documents._voucher_verification',['documentNumber'=>$receipt->receipt_no,'documentLabel'=>'سند القبض'])
-@include('documents._footer')</main>@unless($pdfMode??false)<div class="actions"><button onclick="window.print()">طباعة</button><a href="/receipts/{{ $receipt->id }}/pdf">PDF</a><a href="/receipts/{{ $receipt->id }}/excel">Excel</a></div>@endunless</body></html>
+@include('documents._footer')</main>@unless($pdfMode??false)<div class="actions"><button onclick="window.print()">طباعة</button><a href="{{ request()->routeIs('kudia.*') ? '/kudia' : '' }}/receipts/{{ $receipt->id }}/pdf">PDF</a><a href="{{ request()->routeIs('kudia.*') ? '/kudia' : '' }}/receipts/{{ $receipt->id }}/excel">Excel</a></div>@endunless</body></html>

@@ -24,10 +24,10 @@ class ExternalInvoiceController extends Controller
 
         return view('external_invoices.index', [
             'integration' => $integration,
-            'invoices' => ExternalInvoice::with('customer')->where('company_id', $companyId)->latest('invoice_date')->paginate(25),
-            'customers' => Customer::where('company_id', $companyId)->orderBy('name')->get(),
+            'invoices' => ExternalInvoice::with('customer')->where('company_id', $companyId)->where('provider', '!=', 'kudia')->latest('invoice_date')->paginate(25),
+            'customers' => Customer::where('company_id', $companyId)->forAccountGroup(Customer::GROUP_GENERAL)->orderBy('name')->get(),
             'tokens' => CompanyApiToken::where('company_id', $companyId)->latest()->get(),
-            'invoiceCount' => ExternalInvoice::where('company_id', $companyId)->count(),
+            'invoiceCount' => ExternalInvoice::where('company_id', $companyId)->where('provider', '!=', 'kudia')->count(),
             'lastActivity' => IntegrationLog::where('company_id', $companyId)->latest()->first(),
             'recentErrors' => IntegrationLog::where('company_id', $companyId)->where('http_status', '>=', 400)->latest()->limit(10)->get(),
             'hasActiveToken' => CompanyApiToken::where('company_id', $companyId)
@@ -57,7 +57,7 @@ class ExternalInvoiceController extends Controller
             ],
             'customer_id' => ['required', 'integer'],
         ]);
-        $customer = Customer::where('company_id', $companyId)->findOrFail($data['customer_id']);
+        $customer = Customer::where('company_id', $companyId)->forAccountGroup(Customer::GROUP_GENERAL)->findOrFail($data['customer_id']);
         $customer->update(['external_customer_id' => $data['external_customer_id']]);
         return back()->with('success', __('messages.customer_linked'));
     }

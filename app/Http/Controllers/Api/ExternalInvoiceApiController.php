@@ -57,6 +57,7 @@ class ExternalInvoiceApiController extends Controller
             ], 422);
         }
         $customer = Customer::query()
+            ->forAccountGroup(Customer::GROUP_GENERAL)
             ->where('company_id', $company->id)
             ->where('integration_id', $publicCustomerId)
             ->first();
@@ -64,6 +65,11 @@ class ExternalInvoiceApiController extends Controller
         if (!$customer) {
             $this->record($company->id, $request, 'customer_not_found', 404, 'Matching customer was not found.');
             return response()->json(['message' => 'Matching customer not found.'], 404);
+        }
+
+        if (ExternalInvoice::where('company_id', $company->id)->where('external_invoice_id', $data['external_invoice_id'])
+            ->where('provider', 'kudia')->exists()) {
+            return response()->json(['message' => 'Factory invoices must be managed through the factory section.'], 422);
         }
 
         try {
@@ -103,6 +109,7 @@ class ExternalInvoiceApiController extends Controller
     {
         $company = $request->attributes->get('company');
         $invoice = ExternalInvoice::where('company_id', $company->id)
+            ->where('provider', '!=', 'kudia')
             ->where('external_invoice_id', $externalInvoiceId)->firstOrFail();
         $invoice->update(['status' => 'cancelled']);
         $this->record($company->id, new Request([
@@ -117,6 +124,7 @@ class ExternalInvoiceApiController extends Controller
     {
         $request->validate(['per_page' => ['nullable', 'integer', 'min:1', 'max:100']]);
         $page = ExternalInvoice::query()->where('company_id', $request->attributes->get('company')->id)
+            ->where('provider', '!=', 'kudia')
             ->latest('invoice_date')->latest('id')->paginate(max(1, min($request->integer('per_page', 100), 100)))
             ->withQueryString();
 
@@ -133,7 +141,7 @@ class ExternalInvoiceApiController extends Controller
 
     public function balance(Request $request, string $customerId, CustomerBalanceService $balances)
     {
-        $customer = Customer::where('company_id', $request->attributes->get('company')->id)
+        $customer = Customer::where('company_id', $request->attributes->get('company')->id)->forAccountGroup(Customer::GROUP_GENERAL)
             ->where('integration_id', $customerId)->firstOrFail();
         $balance = $balances->calculate($customer);
         $currency = strtoupper(Setting::where('company_id', $customer->company_id)->value('currency') ?: 'IQD');

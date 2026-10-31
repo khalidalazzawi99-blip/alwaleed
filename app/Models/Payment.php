@@ -7,6 +7,8 @@ use Illuminate\Support\Str;
 
 class Payment extends Model
 {
+    use \App\Models\Concerns\HasCustomerAccountGroup;
+
     protected $touches = ['customer'];
 
     protected $fillable = [

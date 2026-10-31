@@ -25,9 +25,9 @@ class ReceiptController extends Controller
         $year = now()->year;
 
         return view('receipts.index', [
-            'receipts' => Receipt::with(['customer', 'supplier', 'cashbox'])->where('company_id', $companyId)->latest()->get(),
-            'customers' => Customer::where('company_id', $companyId)->orderBy('name')->get(),
-            'suppliers' => Supplier::where('company_id', $companyId)->orderBy('name')->get(),
+            'receipts' => Receipt::with(['customer', 'supplier', 'cashbox'])->where('company_id', $companyId)->forCustomerGroup(Customer::requestAccountGroup())->latest()->get(),
+            'customers' => Customer::where('company_id', $companyId)->forAccountGroup(Customer::requestAccountGroup())->orderBy('name')->get(),
+            'suppliers' => Customer::requestAccountGroup() === Customer::GROUP_KUDIA ? collect() : Supplier::where('company_id', $companyId)->orderBy('name')->get(),
             'cashboxes' => Cashbox::operational()->where('company_id', $companyId)->where('is_active', true)->orderBy('id')->get(),
             'nextReceiptNo' => $this->numbers->preview($companyId, 'receipt', $year),
         ]);
@@ -58,7 +58,7 @@ class ReceiptController extends Controller
             $this->log($cashbox->fresh(), $receipt, $party->name, 'قبض', $data['notes'] ?? null);
         });
 
-        return redirect('/receipts')->with('success', 'تم إضافة سند القبض بنجاح');
+        return redirect((request()->routeIs('kudia.*') ? '/kudia' : '').'/receipts')->with('success', 'تم إضافة سند القبض بنجاح');
     }
 
     public function edit(Receipt $receipt)
@@ -69,8 +69,8 @@ class ReceiptController extends Controller
 
         return view('receipts.edit', [
             'receipt' => $receipt,
-            'customers' => Customer::where('company_id', $companyId)->orderBy('name')->get(),
-            'suppliers' => Supplier::where('company_id', $companyId)->orderBy('name')->get(),
+            'customers' => Customer::where('company_id', $companyId)->forAccountGroup(Customer::requestAccountGroup())->orderBy('name')->get(),
+            'suppliers' => Customer::requestAccountGroup() === Customer::GROUP_KUDIA ? collect() : Supplier::where('company_id', $companyId)->orderBy('name')->get(),
             'cashboxes' => Cashbox::operational()->where('company_id', $companyId)
                 ->where(fn ($q) => $q->where('is_active', true)->orWhereKey($receipt->cashbox_id))->orderBy('id')->get(),
         ]);
@@ -111,7 +111,7 @@ class ReceiptController extends Controller
             $this->log($current->fresh(), $receipt, $party->name, 'تعديل قبض', 'تم تعديل سند قبض');
         });
 
-        return redirect('/receipts')->with('success', 'تم تعديل سند القبض بنجاح');
+        return redirect((request()->routeIs('kudia.*') ? '/kudia' : '').'/receipts')->with('success', 'تم تعديل سند القبض بنجاح');
     }
 
     public function destroy(Request $request, Receipt $receipt)
@@ -130,7 +130,7 @@ class ReceiptController extends Controller
             $receipt->update(['status' => 'cancelled', 'cancelled_by' => auth()->id(), 'cancelled_at' => now(), 'cancellation_reason' => $data['cancellation_reason'] ?? null]);
         });
 
-        return redirect('/receipts')->with('success', 'تم إلغاء سند القبض مع الاحتفاظ بسجل التدقيق.');
+        return redirect((request()->routeIs('kudia.*') ? '/kudia' : '').'/receipts')->with('success', 'تم إلغاء سند القبض مع الاحتفاظ بسجل التدقيق.');
     }
 
     public function print($id)
@@ -163,19 +163,22 @@ class ReceiptController extends Controller
 
     private function findCompanyReceipt($id): Receipt
     {
-        return Receipt::with(['customer', 'supplier'])->whereKey($id)->where('company_id', auth()->user()->company_id)->firstOrFail();
+        return Receipt::with(['customer', 'supplier'])->whereKey($id)->where('company_id', auth()->user()->company_id)->forCustomerGroup(Customer::requestAccountGroup())->firstOrFail();
     }
 
     private function ensureCompany(Receipt $receipt): void
     {
         abort_unless((int) $receipt->company_id === (int) auth()->user()->company_id, 403);
+        abort_unless(($receipt->customer?->account_group ?? Customer::GROUP_GENERAL) === Customer::requestAccountGroup(), 404);
     }
 
     private function findParty(string $type, int $id, int $companyId)
     {
         $model = $type === 'customer' ? Customer::class : Supplier::class;
+        abort_if($type === 'supplier' && Customer::requestAccountGroup() === Customer::GROUP_KUDIA, 404);
 
-        return $model::whereKey($id)->where('company_id', $companyId)->firstOrFail();
+        return $model::whereKey($id)->where('company_id', $companyId)
+            ->when($type === 'customer', fn ($query) => $query->forAccountGroup(Customer::requestAccountGroup()))->firstOrFail();
     }
 
     private function findCashbox(int $id, int $companyId): Cashbox

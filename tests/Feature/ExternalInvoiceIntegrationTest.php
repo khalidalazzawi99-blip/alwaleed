@@ -21,6 +21,32 @@ class ExternalInvoiceIntegrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_general_integration_feed_and_invoice_writes_cannot_mix_factory_accounts(): void
+    {
+        $company = $this->company();
+        $general = $this->customer($company);
+        $factory = Customer::create(['company_id' => $company->id, 'name' => 'Separate factory customer', 'account_group' => Customer::GROUP_KUDIA]);
+        $this->invoice($company, $general, 'GENERAL', 100);
+        $factoryInvoice = $this->invoice($company, $factory, 'FACTORY', 200);
+        $factoryInvoice->update(['provider' => 'kudia', 'status' => 'active']);
+        [$plain] = $this->credential($company);
+
+        $this->withToken($plain)->getJson('/api/v1/external-customers')->assertOk()
+            ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.customer_id', $general->integration_id)
+            ->assertJsonPath('data.0.balance', 100);
+        $this->getJson('/api/v1/customers/'.$factory->integration_id.'/balance')->assertNotFound();
+        $this->getJson('/api/v1/external-invoices')->assertOk()->assertJsonPath('meta.total', 1);
+        $this->postJson('/api/v1/external-invoices/FACTORY/cancel')->assertNotFound();
+        $this->postJson('/api/v1/external-invoices', $this->payload(['customer_id' => $factory->integration_id]))->assertNotFound();
+        $this->postJson('/api/v1/external-invoices', $this->payload([
+            'customer_id' => $general->integration_id, 'external_invoice_id' => 'FACTORY',
+        ]))->assertStatus(422);
+        $this->assertSame('active', $factoryInvoice->fresh()->status);
+        $this->assertSame($factory->id, $factoryInvoice->fresh()->customer_id);
+        $this->assertSame(100.0, app(CustomerBalanceService::class)->calculate($general)['currentBalance']);
+        $this->assertSame(200.0, app(CustomerBalanceService::class)->calculate($factory)['currentBalance']);
+    }
+
     public function test_valid_invoice_is_received_and_company_comes_from_api_key(): void
     {
         $company = $this->company();

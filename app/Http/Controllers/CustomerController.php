@@ -48,7 +48,7 @@ class CustomerController extends Controller
 
     private function customersWithBalances(int $companyId)
     {
-        $customers = Customer::where('company_id', $companyId)
+        $customers = Customer::where('company_id', $companyId)->forAccountGroup(Customer::requestAccountGroup())
             ->withSum(['receipts as total_received' => fn ($query) => $query->where('company_id', $companyId)->where('status', 'active')], 'amount')
             ->withSum(['payments as total_paid' => fn ($query) => $query->where('company_id', $companyId)->where('status', 'active')], 'amount')
             ->withSum(['externalInvoices as total_invoiced' => fn ($query) => $query->where('company_id', $companyId)->where('status', '!=', 'cancelled')], 'amount')
@@ -78,6 +78,7 @@ class CustomerController extends Controller
 
         Customer::create([
             'company_id' => auth()->user()->company_id,
+            'account_group' => Customer::requestAccountGroup(),
             'name' => $request->name,
             'phone' => $request->phone,
             'company_name' => $request->company_name,
@@ -127,7 +128,7 @@ class CustomerController extends Controller
             'notes' => ['nullable', 'string'],
         ]));
 
-        return redirect('/customers')->with('success', __('تم تعديل بيانات الزبون بنجاح'));
+        return redirect(request()->routeIs('kudia.*') ? '/kudia/customers' : '/customers')->with('success', __('تم تعديل بيانات الزبون بنجاح'));
     }
 
     public function print(Request $request, Customer $customer)
@@ -289,5 +290,6 @@ class CustomerController extends Controller
         if ($customer->company_id !== auth()->user()->company_id) {
             abort(403, __('غير مسموح بالوصول إلى هذا الزبون'));
         }
+        abort_unless($customer->account_group === Customer::requestAccountGroup(), 404);
     }
 }
